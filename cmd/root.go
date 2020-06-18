@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/roppenlabs/silent-assassin/pkg/config"
+	"github.com/roppenlabs/silent-assassin/pkg/logger"
 	"github.com/spf13/cobra"
-
-	homedir "github.com/mitchellh/go-homedir"
-	"github.com/spf13/viper"
 )
 
 var cfgFile string
+var configProvider *config.Provider
+var zapLogger logger.ZapLogger
 
 var rootCmd = &cobra.Command{
 	Use:   "silent-assassin",
@@ -26,31 +27,11 @@ func Execute() {
 }
 
 func init() {
+
 	cobra.OnInitialize(initConfig)
-
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.silent-assassin.yaml)")
-
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./config/.silent-assassin.yaml", "config file (default is $HOME/.silent-assassin.yaml)")
 }
 
 func initConfig() {
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-	} else {
 
-		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".silent-assassin")
-	}
-
-	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
-	}
 }
