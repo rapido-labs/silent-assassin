@@ -9,44 +9,38 @@ import (
 const EVENT = "event"
 const COMPONENT = "component"
 
-type Log struct {
-	Event     string
-	Message   string
-	Component string
-}
-
 type IZapLogger interface {
-	Debug(log Log)
-	Info(log Log)
-	Error(log Log)
-	Warn(log Log)
+	Debug(message string, event string, component string)
+	Info(message string, event string, component string)
+	Error(message string, event string, component string)
+	Warn(message string, event string, component string)
 }
 
 type ZapLogger struct {
 	logger *zap.Logger
 }
 
-func (l ZapLogger) Debug(log Log) {
-	l.logger.Debug(log.Message, zap.String(EVENT, log.Event), zap.String(COMPONENT, log.Component))
+func (l ZapLogger) Debug(message string, event string, component string) {
+	l.logger.Debug(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
 }
 
-func (l ZapLogger) Info(log Log) {
-	l.logger.Info(log.Message, zap.String(EVENT, log.Event), zap.String(COMPONENT, log.Component))
+func (l ZapLogger) Info(message string, event string, component string) {
+	l.logger.Info(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
 }
 
-func (l ZapLogger) Warn(log Log) {
-	l.logger.Warn(log.Message, zap.String(EVENT, log.Event), zap.String(COMPONENT, log.Component))
+func (l ZapLogger) Warn(message string, event string, component string) {
+	l.logger.Warn(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
 }
 
-func (l ZapLogger) Error(log Log) {
-	l.logger.Error(log.Message, zap.String(EVENT, log.Event), zap.String(COMPONENT, log.Component))
+func (l ZapLogger) Error(message string, event string, component string) {
+	l.logger.Error(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
 }
 
-func Init(cp *config.Provider) ZapLogger {
+func Init(cp config.IProvider) ZapLogger {
 
 	config := zap.Config{
 		Encoding:         "json",
-		Level:            getLogLevel(cp.GetString("LOGGER.LEVEL")),
+		Level:            getLogLevel(cp.GetString(config.LogLevel)),
 		OutputPaths:      []string{"stderr"},
 		ErrorOutputPaths: []string{"stderr"},
 		EncoderConfig: zapcore.EncoderConfig{

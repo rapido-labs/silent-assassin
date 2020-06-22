@@ -4,14 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/roppenlabs/silent-assassin/pkg/config"
-	"github.com/roppenlabs/silent-assassin/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
 var cfgFile string
-var configProvider *config.Provider
-var zapLogger logger.ZapLogger
 
 var rootCmd = &cobra.Command{
 	Use:   "silent-assassin",
