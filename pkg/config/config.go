@@ -7,7 +7,7 @@ import (
 )
 
 type Provider struct {
-	viper *viper.Viper
+	*viper.Viper
 }
 
 type IProvider interface {
@@ -46,58 +46,58 @@ func Init(cfgFile string) *Provider {
 		panic(err)
 	}
 
-	return &Provider{viper: v}
+	return &Provider{Viper: v}
 
 }
 
 func (f *Provider) GetString(key string) string {
-	return f.viper.GetString(key)
+	return f.Viper.GetString(key)
 }
 func (f *Provider) GetBool(key string) bool {
-	return f.viper.GetBool(key)
+	return f.Viper.GetBool(key)
 }
 func (f *Provider) GetInt(key string) int {
-	return f.viper.GetInt(key)
+	return f.Viper.GetInt(key)
 }
 func (f *Provider) GetInt32(key string) int32 {
-	return f.viper.GetInt32(key)
+	return f.Viper.GetInt32(key)
 }
 func (f *Provider) GetInt64(key string) int64 {
-	return f.viper.GetInt64(key)
+	return f.Viper.GetInt64(key)
 }
 func (f *Provider) GetUint(key string) uint {
-	return f.viper.GetUint(key)
+	return f.Viper.GetUint(key)
 }
 func (f *Provider) GetUint32(key string) uint32 {
-	return f.viper.GetUint32(key)
+	return f.Viper.GetUint32(key)
 }
 func (f *Provider) GetUint64(key string) uint64 {
-	return f.viper.GetUint64(key)
+	return f.Viper.GetUint64(key)
 }
 func (f *Provider) GetFloat64(key string) float64 {
-	return f.viper.GetFloat64(key)
+	return f.Viper.GetFloat64(key)
 }
 func (f *Provider) GetTime(key string) time.Time {
-	return f.viper.GetTime(key)
+	return f.Viper.GetTime(key)
 }
 func (f *Provider) GetDuration(key string) time.Duration {
-	return f.viper.GetDuration(key)
+	return f.Viper.GetDuration(key)
 }
 func (f *Provider) GetIntSlice(key string) []int {
-	return f.viper.GetIntSlice(key)
+	return f.Viper.GetIntSlice(key)
 }
 func (f *Provider) GetStringSlice(key string) []string {
-	return f.viper.GetStringSlice(key)
+	return f.Viper.GetStringSlice(key)
 }
 func (f *Provider) GetStringMap(key string) map[string]interface{} {
-	return f.viper.GetStringMap(key)
+	return f.Viper.GetStringMap(key)
 }
 func (f *Provider) GetStringMapString(key string) map[string]string {
-	return f.viper.GetStringMapString(key)
+	return f.Viper.GetStringMapString(key)
 }
 func (f *Provider) GetStringMapStringSlice(key string) map[string][]string {
-	return f.viper.GetStringMapStringSlice(key)
+	return f.Viper.GetStringMapStringSlice(key)
 }
 func (f *Provider) GetSizeInBytes(key string) uint {
-	return f.viper.GetSizeInBytes(key)
+	return f.Viper.GetSizeInBytes(key)
 }

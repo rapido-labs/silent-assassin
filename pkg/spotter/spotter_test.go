@@ -18,13 +18,16 @@ func TestShouldFetchNodesWithLabels(t *testing.T) {
 	configMock := new(config.ProviderMock)
 
 	configMock.On("GetString", mock.Anything).Return("debug")
-	configMock.On("GetInt", "spotter.poll_interval_ms").Return("3000")
+	configMock.On("GetInt", "spotter.poll_interval_ms").Return(3000)
 	configMock.On("GetStringSlice", "spotter.label_selectors").Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
 	k8sMock.On("GetNodes", []string{"cloud.google.com/gke-preemptible=true,label2=test"}).Return(&v1.NodeList{})
 
 	zapLogger := logger.Init(configMock)
 	kubeClient := k8sMock
-	spotNodesForRemoval(configMock, zapLogger, kubeClient)
+	ss := NewSpotterService(configMock, zapLogger, kubeClient)
+
+	ss.spot()
+
 	k8sMock.AssertExpectations(t)
 }
 
@@ -45,7 +48,7 @@ func TestShouldAnnotateIfAbsent(t *testing.T) {
 	}
 
 	configMock.On("GetString", mock.Anything).Return("debug")
-	configMock.On("GetString", mock.Anything).Return("3000")
+	configMock.On("GetInt", mock.Anything).Return(3000)
 	configMock.On("GetStringSlice", mock.Anything).Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
 	k8sMock.On("GetNodes", mock.Anything).Return(&nodeList)
 	k8sMock.On("AnnotateNode", mock.MatchedBy(func(input v1.Node) bool {
@@ -55,7 +58,10 @@ func TestShouldAnnotateIfAbsent(t *testing.T) {
 
 	zapLogger := logger.Init(configMock)
 	kubeClient := k8sMock
-	spotNodesForRemoval(configMock, zapLogger, kubeClient)
+	ss := NewSpotterService(configMock, zapLogger, kubeClient)
+
+	ss.spot()
+
 	k8sMock.AssertExpectations(t)
 }
 
@@ -79,7 +85,7 @@ func TestShouldSetExpiryTimeAs12HoursFromCreation(t *testing.T) {
 	}
 
 	configMock.On("GetString", mock.Anything).Return("debug")
-	configMock.On("GetString", mock.Anything).Return("3000")
+	configMock.On("GetInt", mock.Anything).Return(3000)
 	configMock.On("GetStringSlice", mock.Anything).Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
 	k8sMock.On("GetNodes", mock.Anything).Return(&nodeList)
 	k8sMock.On("AnnotateNode", mock.MatchedBy(func(input v1.Node) bool {
@@ -90,6 +96,9 @@ func TestShouldSetExpiryTimeAs12HoursFromCreation(t *testing.T) {
 
 	zapLogger := logger.Init(configMock)
 	kubeClient := k8sMock
-	spotNodesForRemoval(configMock, zapLogger, kubeClient)
+	ss := NewSpotterService(configMock, zapLogger, kubeClient)
+
+	ss.spot()
+
 	k8sMock.AssertExpectations(t)
 }

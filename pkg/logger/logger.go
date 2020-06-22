@@ -17,23 +17,23 @@ type IZapLogger interface {
 }
 
 type ZapLogger struct {
-	logger *zap.Logger
+	*zap.Logger
 }
 
 func (l ZapLogger) Debug(message string, event string, component string) {
-	l.logger.Debug(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
+	l.Logger.Debug(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
 }
 
 func (l ZapLogger) Info(message string, event string, component string) {
-	l.logger.Info(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
+	l.Logger.Info(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
 }
 
 func (l ZapLogger) Warn(message string, event string, component string) {
-	l.logger.Warn(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
+	l.Logger.Warn(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
 }
 
 func (l ZapLogger) Error(message string, event string, component string) {
-	l.logger.Error(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
+	l.Logger.Error(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
 }
 
 func Init(cp config.IProvider) ZapLogger {
@@ -57,7 +57,7 @@ func Init(cp config.IProvider) ZapLogger {
 	logger, _ := config.Build()
 	defer logger.Sync()
 
-	return ZapLogger{logger: logger}
+	return ZapLogger{Logger: logger}
 }
 
 func getLogLevel(level string) zap.AtomicLevel {

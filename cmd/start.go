@@ -1,6 +1,12 @@
 package cmd
 
 import (
+	"context"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+
 	"github.com/roppenlabs/silent-assassin/pkg/config"
 	"github.com/roppenlabs/silent-assassin/pkg/k8s"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
@@ -15,12 +21,22 @@ var startCmd = &cobra.Command{
 	gracefully kill the nodes which have outlived the expiry time.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
+		sigChan := make(chan os.Signal)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		wg := &sync.WaitGroup{}
+		ctx, cancelFn := context.WithCancel(context.Background())
+
 		configProvider := config.Init(cfgFile)
 		zapLogger := logger.Init(configProvider)
 		kubeClient := k8s.NewClient(configProvider, zapLogger)
 
-		spotter.Start(configProvider, zapLogger, kubeClient)
+		ss := spotter.NewSpotterService(configProvider, zapLogger, kubeClient)
+		wg.Add(1)
+		go ss.Start(ctx, wg)
 
+		<-sigChan
+		cancelFn()
+		wg.Wait()
 	},
 }
 

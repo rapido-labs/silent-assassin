@@ -1,5 +1,5 @@
 SPOTTER:
-  POLL_INTERVAL_MS: 30000
+  POLL_INTERVAL_MS: 1000
   LABEL_SELECTORS:
     - cloud.google.com/gke-preemptible=true
     - cloud.google.com/gke-nodepool=monitoring-2

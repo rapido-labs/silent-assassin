@@ -1,7 +1,9 @@
 package spotter
 
 import (
+	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/roppenlabs/silent-assassin/pkg/config"
@@ -9,21 +11,40 @@ import (
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
 )
 
-func Start(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient) {
-
-	zl.Debug(fmt.Sprintf("Starting Spotter Loop with a delay interval of %d", cp.GetInt(config.SpotterPollIntervalMs)), "START", config.LogComponentName)
-
-	for {
-		spotNodesForRemoval(cp, zl, kc)
-		time.Sleep(time.Millisecond * time.Duration(cp.GetInt(config.SpotterPollIntervalMs)))
-	}
-
+type spotterService struct {
+	cp         config.IProvider
+	logger     logger.IZapLogger
+	kubeClient k8s.IKubernetesClient
 }
 
-func spotNodesForRemoval(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient) {
-	nodes := kc.GetNodes(cp.GetStringSlice(config.SpotterNodeSelectors))
+func NewSpotterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient) spotterService {
+	return spotterService{
+		cp:         cp,
+		logger:     zl,
+		kubeClient: kc,
+	}
+}
 
-	zl.Info(fmt.Sprintf("Fetched %d node(s)", len(nodes.Items)), "GET_NODES", config.LogComponentName)
+func (ss spotterService) Start(ctx context.Context, wg *sync.WaitGroup) {
+	for {
+		select {
+		case <-ctx.Done():
+			ss.logger.Info("Shutting down spotter service", "START", config.LogComponentName)
+			wg.Done()
+			return
+		default:
+			ss.spot()
+			time.Sleep(time.Millisecond * time.Duration(ss.cp.GetInt(config.SpotterPollIntervalMs)))
+		}
+	}
+}
+
+func (ss spotterService) spot() {
+	ss.logger.Debug(fmt.Sprintf("Starting Spotter Loop with a delay interval of %d", ss.cp.GetInt(config.SpotterPollIntervalMs)), "START", config.LogComponentName)
+
+	nodes := ss.kubeClient.GetNodes(ss.cp.GetStringSlice(config.SpotterNodeSelectors))
+
+	ss.logger.Info(fmt.Sprintf("Fetched %d node(s)", len(nodes.Items)), "GET_NODES", config.LogComponentName)
 
 	for _, node := range nodes.Items {
 		nodeAnnotations := node.GetAnnotations()
@@ -38,11 +59,12 @@ func spotNodesForRemoval(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKube
 		nodeAnnotations[config.SpotterExpiryTimeAnnotation] = expiryTime
 
 		node.SetAnnotations(nodeAnnotations)
-		err := kc.AnnotateNode(node)
+		err := ss.kubeClient.AnnotateNode(node)
 		if err != nil {
-			zl.Error(fmt.Sprintf("Failed to annotate node : %s", node.ObjectMeta.Name), "ANNOTATE_NODES", config.LogComponentName)
+			ss.logger.Error(fmt.Sprintf("Failed to annotate node : %s", node.ObjectMeta.Name), "ANNOTATE_NODES", config.LogComponentName)
 			panic(err)
 		}
-		zl.Info(fmt.Sprintf("Annotated node : %s", node.ObjectMeta.Name), "ANNOTATE_NODES", config.LogComponentName)
+		ss.logger.Info(fmt.Sprintf("Annotated node : %s", node.ObjectMeta.Name), "ANNOTATE_NODES", config.LogComponentName)
 	}
+
 }
