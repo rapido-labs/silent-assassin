@@ -10,30 +10,30 @@ const EVENT = "event"
 const COMPONENT = "component"
 
 type IZapLogger interface {
-	Debug(message string, event string, component string)
-	Info(message string, event string, component string)
-	Error(message string, event string, component string)
-	Warn(message string, event string, component string)
+	Debug(message string)
+	Info(message string)
+	Error(message string)
+	Warn(message string)
 }
 
 type ZapLogger struct {
 	*zap.Logger
 }
 
-func (l ZapLogger) Debug(message string, event string, component string) {
-	l.Logger.Debug(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
+func (l ZapLogger) Debug(message string) {
+	l.Logger.Debug(message)
 }
 
-func (l ZapLogger) Info(message string, event string, component string) {
-	l.Logger.Info(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
+func (l ZapLogger) Info(message string) {
+	l.Logger.Info(message)
 }
 
-func (l ZapLogger) Warn(message string, event string, component string) {
-	l.Logger.Warn(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
+func (l ZapLogger) Warn(message string) {
+	l.Logger.Warn(message)
 }
 
-func (l ZapLogger) Error(message string, event string, component string) {
-	l.Logger.Error(message, zap.String(EVENT, event), zap.String(COMPONENT, component))
+func (l ZapLogger) Error(message string) {
+	l.Logger.Error(message)
 }
 
 func Init(cp config.IProvider) ZapLogger {

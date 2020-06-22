@@ -29,7 +29,7 @@ func (ss spotterService) Start(ctx context.Context, wg *sync.WaitGroup) {
 	for {
 		select {
 		case <-ctx.Done():
-			ss.logger.Info("Shutting down spotter service", "START", config.LogComponentName)
+			ss.logger.Info("Shutting down spotter service")
 			wg.Done()
 			return
 		default:
@@ -40,11 +40,11 @@ func (ss spotterService) Start(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 func (ss spotterService) spot() {
-	ss.logger.Debug(fmt.Sprintf("Starting Spotter Loop with a delay interval of %d", ss.cp.GetInt(config.SpotterPollIntervalMs)), "START", config.LogComponentName)
+	ss.logger.Debug(fmt.Sprintf("Starting Spotter Loop with a delay interval of %d", ss.cp.GetInt(config.SpotterPollIntervalMs)))
 
 	nodes := ss.kubeClient.GetNodes(ss.cp.GetStringSlice(config.SpotterNodeSelectors))
 
-	ss.logger.Info(fmt.Sprintf("Fetched %d node(s)", len(nodes.Items)), "GET_NODES", config.LogComponentName)
+	ss.logger.Info(fmt.Sprintf("Fetched %d node(s)", len(nodes.Items)))
 
 	for _, node := range nodes.Items {
 		nodeAnnotations := node.GetAnnotations()
@@ -61,10 +61,10 @@ func (ss spotterService) spot() {
 		node.SetAnnotations(nodeAnnotations)
 		err := ss.kubeClient.AnnotateNode(node)
 		if err != nil {
-			ss.logger.Error(fmt.Sprintf("Failed to annotate node : %s", node.ObjectMeta.Name), "ANNOTATE_NODES", config.LogComponentName)
+			ss.logger.Error(fmt.Sprintf("Failed to annotate node : %s", node.ObjectMeta.Name))
 			panic(err)
 		}
-		ss.logger.Info(fmt.Sprintf("Annotated node : %s", node.ObjectMeta.Name), "ANNOTATE_NODES", config.LogComponentName)
+		ss.logger.Info(fmt.Sprintf("Annotated node : %s", node.ObjectMeta.Name))
 	}
 
 }

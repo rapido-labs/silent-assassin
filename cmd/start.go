@@ -35,8 +35,11 @@ var startCmd = &cobra.Command{
 		go ss.Start(ctx, wg)
 
 		<-sigChan
+
+		zapLogger.Info("Starting shut down")
 		cancelFn()
 		wg.Wait()
+		zapLogger.Info("Shut down completed successfully")
 	},
 }
 
