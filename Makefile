@@ -16,7 +16,8 @@ build-deps:
 
 compile:
 	mkdir -p out/
-	go build -o $(APP_EXECUTABLE) -ldflags "-X main.version=$(APP_VERSION) -X main.commit=$(APP_COMMIT)" cmd/*.go
+
+	go build -o $(APP_EXECUTABLE) -ldflags "-X main.version=$(APP_VERSION) -X main.commit=$(APP_COMMIT)" ./*.go
 
 fmt:
 	go fmt $(ALL_PACKAGES)
