@@ -5,7 +5,7 @@ pipelines:
     materials:
       repo:
         git: git@github.com:roppenlabs/silent-assassin.git
-        branch: develop
+        branch: f/annotateNodes
     template: golang
     parameters:
       component: silent-assassin
