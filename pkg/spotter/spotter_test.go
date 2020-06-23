@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestShouldFetchNodesWithLabels(t *testing.T) {
@@ -52,8 +54,14 @@ func TestShouldAnnotateIfAbsent(t *testing.T) {
 	configMock.On("GetStringSlice", mock.Anything).Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
 	k8sMock.On("GetNodes", mock.Anything).Return(&nodeList)
 	k8sMock.On("AnnotateNode", mock.MatchedBy(func(input v1.Node) bool {
+
 		_, found := input.ObjectMeta.Annotations["silent-assassin/expiry-time"]
-		return found && input.ObjectMeta.Name == "Node-2"
+		if !found {
+			return false
+		}
+		assert.Equal(t, "Node-2", input.ObjectMeta.Name, "Node name is not matching")
+		return true
+
 	})).Return(nil)
 
 	zapLogger := logger.Init(configMock)
@@ -90,8 +98,16 @@ func TestShouldSetExpiryTimeAs12HoursFromCreation(t *testing.T) {
 	k8sMock.On("GetNodes", mock.Anything).Return(&nodeList)
 	k8sMock.On("AnnotateNode", mock.MatchedBy(func(input v1.Node) bool {
 		expiryTimeAsString, found := input.ObjectMeta.Annotations["silent-assassin/expiry-time"]
+
+		if !found {
+			return false
+		}
 		expiryTime, _ := time.Parse(time.RFC1123Z, expiryTimeAsString)
-		return found && input.ObjectMeta.Name == "Node-2" && expiryTime == creationTimestamp.Add(time.Hour*12)
+
+		assert.Equal(t, "Node-2", input.ObjectMeta.Name, "Node name is not matching")
+		assert.Equal(t, creationTimestamp.Add(time.Hour*12), expiryTime, "Node name is not matching")
+		return true
+
 	})).Return(nil)
 
 	zapLogger := logger.Init(configMock)
