@@ -12,7 +12,7 @@ func (kc KubernetesClient) GetNodes(labels []string) *v1.NodeList {
 
 	labelSelector := strings.Join(labels, ",")
 
-	kc.logger.Info(fmt.Sprintf("Label Selectors : %v", labelSelector))
+	kc.logger.Debug(fmt.Sprintf("Label Selectors : %v", labelSelector))
 
 	options := metav1.ListOptions{
 		LabelSelector: labelSelector,

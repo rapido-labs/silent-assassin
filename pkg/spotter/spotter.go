@@ -26,7 +26,7 @@ func NewSpotterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubern
 }
 
 func (ss spotterService) Start(ctx context.Context, wg *sync.WaitGroup) {
-	ss.logger.Info(fmt.Sprintf("Starting Spotter Loop with a delay interval of %d", ss.cp.GetInt(config.SpotterPollIntervalMs)))
+	ss.logger.Info(fmt.Sprintf("Starting Spotter Loop - Poll Interval : %d", ss.cp.GetInt(config.SpotterPollIntervalMs)))
 
 	for {
 		select {
