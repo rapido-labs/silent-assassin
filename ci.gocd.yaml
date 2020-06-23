@@ -6,17 +6,11 @@ pipelines:
       repo:
         git: git@github.com:roppenlabs/silent-assassin.git
         branch: f/annotateNodes
-    stages:
-      - validate:
-          clean_workspace: true
-          jobs:
-            validate:
-              elastic_profile_id: golang-1.14.2
-              tasks:
-                - exec:
-                   command: sleep
-                   arguments:
-                    - 600000000
+    template: golang
+    parameters:
+      component: silent-assassin
+      environment: development
+      namespace: andromeda
   silent-assassin-staging:
     group: andromeda-staging
     materials:
