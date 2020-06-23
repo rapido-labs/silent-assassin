@@ -4,7 +4,7 @@ export GO111MODULE=on
 all: clean build test
 
 APP=silent-assassin
-APP_VERSION:=$(shell cat .version)
+APP_VERSION:=$(shell cat version.txt)
 APP_COMMIT:=$(shell git rev-parse HEAD)
 APP_EXECUTABLE="./out/$(APP)"
 ALL_PACKAGES=$(shell go list ./... | grep -v "vendor")
