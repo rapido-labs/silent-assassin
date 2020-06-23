@@ -1,0 +1,7 @@
+environment: development
+
+resources:
+  enabled: false
+
+hpa:
+  enabled: false

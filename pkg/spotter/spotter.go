@@ -40,11 +40,11 @@ func (ss spotterService) Start(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 func (ss spotterService) spot() {
-	ss.logger.Debug(fmt.Sprintf("Starting Spotter Loop with a delay interval of %d", ss.cp.GetInt(config.SpotterPollIntervalMs)))
+	ss.logger.Info(fmt.Sprintf("Starting Spotter Loop with a delay interval of %d", ss.cp.GetInt(config.SpotterPollIntervalMs)))
 
 	nodes := ss.kubeClient.GetNodes(ss.cp.GetStringSlice(config.SpotterNodeSelectors))
 
-	ss.logger.Info(fmt.Sprintf("Fetched %d node(s)", len(nodes.Items)))
+	ss.logger.Debug(fmt.Sprintf("Fetched %d node(s)", len(nodes.Items)))
 
 	for _, node := range nodes.Items {
 		nodeAnnotations := node.GetAnnotations()

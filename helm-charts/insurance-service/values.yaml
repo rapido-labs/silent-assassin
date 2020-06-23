@@ -1,0 +1,74 @@
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.]
+version: 1.0
+replicaCount: 1
+revisionHistoryLimit: 4
+containerPort: 8080
+environment: development
+team: 
+image:
+  repository: asia.gcr.io/staging-host-12358/silent-assassin
+  tag: "latest"
+  pullPolicy: Always 
+
+resources:
+  enabled: true
+  requests:
+    cpu: 1
+    memory: 1024Mi 
+  limits:
+    cpu: 2
+    memory: 2048Mi     
+
+livenessProbe:
+  enabled: false
+  path: /health
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+readinessProbe:
+  enabled: false
+  path: /health
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+service:
+  type: ClusterIP
+  servicePort: 80
+
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 6
+  metrics:
+    cpu:
+      enabled: true
+      targetAverageUtilization: 90
+    memory:
+      enabled: true
+      targetAverageUtilization: 90
+
+istio:
+  virtualService:
+    enabled: false
+  ingressGateway:
+  - istio-system/istio-internal-gateway
+  - mesh
+
+consul:
+  host: http://consul-consul-server.configuration.svc.cluster.local
+  port: 8500
+vault:
+  host: http://rapido-vault-vault.configuration.svc.cluster.local
+  port: 8200
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: cloud.google.com/gke-nodepool
+          operator: In
+          values:
+          - services
+
