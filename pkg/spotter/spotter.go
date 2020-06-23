@@ -26,6 +26,8 @@ func NewSpotterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubern
 }
 
 func (ss spotterService) Start(ctx context.Context, wg *sync.WaitGroup) {
+	ss.logger.Info(fmt.Sprintf("Starting Spotter Loop with a delay interval of %d", ss.cp.GetInt(config.SpotterPollIntervalMs)))
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -40,7 +42,6 @@ func (ss spotterService) Start(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 func (ss spotterService) spot() {
-	ss.logger.Info(fmt.Sprintf("Starting Spotter Loop with a delay interval of %d", ss.cp.GetInt(config.SpotterPollIntervalMs)))
 
 	nodes := ss.kubeClient.GetNodes(ss.cp.GetStringSlice(config.SpotterNodeSelectors))
 
