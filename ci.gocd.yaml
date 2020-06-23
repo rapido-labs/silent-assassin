@@ -23,7 +23,7 @@ pipelines:
       repo:
         git: git@github.com:roppenlabs/silent-assassin.git
         branch: release
-    template: golang-1.14.2
+    template: golang
     parameters:
       component: silent-assassin
       environment: staging
