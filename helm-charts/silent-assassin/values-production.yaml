@@ -1,0 +1,8 @@
+environment: production
+
+image:
+  repository: asia.gcr.io/production-host-12358/silent-assassin
+  tag: "latest"
+  pullPolicy: Always 
+
+replicaCount: 1

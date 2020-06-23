@@ -1,0 +1,4 @@
+environment: qa
+
+replicaCount: 1
+
