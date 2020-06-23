@@ -83,9 +83,8 @@ spec:
             - name: RAPIDO_ENV
               value: {{ .Values.environment }}
           volumeMounts:
-            - mountPath: /usr/app/config/{{ .Values.environment }}.yaml
+            - mountPath: /usr/app/config
               name: config-pv-volume
-              subPath: {{ .Values.environment }}.yaml
       volumes:
         - name: config-pv-volume
           emptyDir: {}
