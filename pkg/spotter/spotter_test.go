@@ -8,35 +8,41 @@ import (
 	"github.com/roppenlabs/silent-assassin/pkg/k8s"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestShouldFetchNodesWithLabels(t *testing.T) {
+type SpotterTestSuite struct {
+	suite.Suite
+	k8sMock    *k8s.K8sClientMock
+	configMock *config.ProviderMock
+	logger     logger.IZapLogger
+}
 
-	k8sMock := new(k8s.K8sClientMock)
-	configMock := new(config.ProviderMock)
+func (s *SpotterTestSuite) SetupTest() {
+	s.configMock = new(config.ProviderMock)
+	s.k8sMock = new(k8s.K8sClientMock)
+	s.configMock.On("GetString", mock.Anything).Return("debug")
+	s.configMock.On("GetInt", "spotter.poll_interval_ms").Return(10)
+	s.configMock.On("GetStringSlice", "spotter.label_selectors").Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
+	s.logger = logger.Init(s.configMock)
+}
 
-	configMock.On("GetString", mock.Anything).Return("debug")
-	configMock.On("GetInt", "spotter.poll_interval_ms").Return(10)
-	configMock.On("GetStringSlice", "spotter.label_selectors").Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
-	k8sMock.On("GetNodes", []string{"cloud.google.com/gke-preemptible=true,label2=test"}).Return(&v1.NodeList{})
+func (suite *SpotterTestSuite) TestShouldFetchNodesWithLabels() {
 
-	zapLogger := logger.Init(configMock)
-	kubeClient := k8sMock
-	ss := NewSpotterService(configMock, zapLogger, kubeClient)
+	suite.k8sMock.On("GetNodes", []string{"cloud.google.com/gke-preemptible=true,label2=test"}).Return(&v1.NodeList{})
+
+	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock)
 
 	ss.spot()
 
-	k8sMock.AssertExpectations(t)
+	suite.k8sMock.AssertExpectations(suite.T())
 }
 
-func TestShouldAnnotateIfAbsent(t *testing.T) {
-
-	k8sMock := new(k8s.K8sClientMock)
-	configMock := new(config.ProviderMock)
+func (suite *SpotterTestSuite) TestShouldAnnotateIfAbsent() {
 
 	nodeAlreadyAnnotated := v1.Node{
 		ObjectMeta: metav1.ObjectMeta{
@@ -49,34 +55,26 @@ func TestShouldAnnotateIfAbsent(t *testing.T) {
 		Items: []v1.Node{nodeAlreadyAnnotated, nodeToBeAnnotated},
 	}
 
-	configMock.On("GetString", mock.Anything).Return("debug")
-	configMock.On("GetInt", mock.Anything).Return(10)
-	configMock.On("GetStringSlice", mock.Anything).Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
-	k8sMock.On("GetNodes", mock.Anything).Return(&nodeList)
-	k8sMock.On("AnnotateNode", mock.MatchedBy(func(input v1.Node) bool {
+	suite.k8sMock.On("GetNodes", mock.Anything).Return(&nodeList)
+	suite.k8sMock.On("AnnotateNode", mock.MatchedBy(func(input v1.Node) bool {
 
 		_, found := input.ObjectMeta.Annotations["silent-assassin/expiry-time"]
 		if !found {
 			return false
 		}
-		assert.Equal(t, "Node-2", input.ObjectMeta.Name, "Node name is not matching")
+		assert.Equal(suite.T(), "Node-2", input.ObjectMeta.Name, "Node name is not matching")
 		return true
 
 	})).Return(nil)
 
-	zapLogger := logger.Init(configMock)
-	kubeClient := k8sMock
-	ss := NewSpotterService(configMock, zapLogger, kubeClient)
+	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock)
 
 	ss.spot()
 
-	k8sMock.AssertExpectations(t)
+	suite.k8sMock.AssertExpectations(suite.T())
 }
 
-func TestShouldSetExpiryTimeAs12HoursFromCreation(t *testing.T) {
-
-	k8sMock := new(k8s.K8sClientMock)
-	configMock := new(config.ProviderMock)
+func (suite *SpotterTestSuite) TestShouldAppendExpiryTimeAs12HoursFromCreation() {
 
 	creationTimestamp, _ := time.Parse(time.RFC1123Z, "Mon, 22 Jun 2020 12:54:45 +0530")
 
@@ -86,17 +84,17 @@ func TestShouldSetExpiryTimeAs12HoursFromCreation(t *testing.T) {
 			CreationTimestamp: metav1.NewTime(creationTimestamp),
 			Annotations:       map[string]string{"silent-assassin/expiry-time": time.Now().String()}}}
 
-	nodeToBeAnnotated := v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "Node-2", CreationTimestamp: metav1.NewTime(creationTimestamp)}}
+	nodeToBeAnnotated := v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "Node-2",
+			CreationTimestamp: metav1.NewTime(creationTimestamp),
+			Annotations:       map[string]string{"node.alpha.kubernetes.io/ttl": "0"}}}
 
 	nodeList := v1.NodeList{
 		Items: []v1.Node{nodeAlreadyAnnotated, nodeToBeAnnotated},
 	}
-
-	configMock.On("GetString", mock.Anything).Return("debug")
-	configMock.On("GetInt", mock.Anything).Return(10)
-	configMock.On("GetStringSlice", mock.Anything).Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
-	k8sMock.On("GetNodes", mock.Anything).Return(&nodeList)
-	k8sMock.On("AnnotateNode", mock.MatchedBy(func(input v1.Node) bool {
+	suite.k8sMock.On("GetNodes", mock.Anything).Return(&nodeList)
+	suite.k8sMock.On("AnnotateNode", mock.MatchedBy(func(input v1.Node) bool {
 		expiryTimeAsString, found := input.ObjectMeta.Annotations["silent-assassin/expiry-time"]
 
 		if !found {
@@ -104,17 +102,20 @@ func TestShouldSetExpiryTimeAs12HoursFromCreation(t *testing.T) {
 		}
 		expiryTime, _ := time.Parse(time.RFC1123Z, expiryTimeAsString)
 
-		assert.Equal(t, "Node-2", input.ObjectMeta.Name, "Node name is not matching")
-		assert.Equal(t, creationTimestamp.Add(time.Hour*12), expiryTime, "Node name is not matching")
+		assert.Equal(suite.T(), "Node-2", input.ObjectMeta.Name, "Node name is not matching")
+		assert.Equal(suite.T(), 2, len(input.ObjectMeta.Annotations), "Annotations count not matching")
+		assert.Equal(suite.T(), creationTimestamp.Add(time.Hour*12), expiryTime, "CreationTimestamp is not matching")
 		return true
 
 	})).Return(nil)
 
-	zapLogger := logger.Init(configMock)
-	kubeClient := k8sMock
-	ss := NewSpotterService(configMock, zapLogger, kubeClient)
+	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock)
 
 	ss.spot()
 
-	k8sMock.AssertExpectations(t)
+	suite.k8sMock.AssertExpectations(suite.T())
+}
+
+func TestSpotterTestSuite(t *testing.T) {
+	suite.Run(t, new(SpotterTestSuite))
 }
