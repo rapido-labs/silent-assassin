@@ -25,7 +25,7 @@ func Execute() {
 func init() {
 
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./config/.silent-assassin.yaml", "config file (default is $HOME/.silent-assassin.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./config/.silent-assassin.yaml", "config file (default is ./config/.silent-assassin.yaml)")
 }
 
 func initConfig() {
