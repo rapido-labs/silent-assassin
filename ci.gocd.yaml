@@ -1,0 +1,24 @@
+format_version: 5
+pipelines:
+  silent-assassin-dev:
+    group: andromeda-dev
+    materials:
+      repo:
+        git: git@github.com:roppenlabs/silent-assassin.git
+        branch: develop
+    template: golang
+    parameters:
+      component: silent-assassin
+      environment: development
+      namespace: andromeda
+  silent-assassin-staging:
+    group: andromeda-staging
+    materials:
+      repo:
+        git: git@github.com:roppenlabs/silent-assassin.git
+        branch: release
+    template: golang
+    parameters:
+      component: silent-assassin
+      environment: staging
+      namespace: andromeda
