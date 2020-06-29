@@ -168,11 +168,11 @@ func (ss *spotterService) getExpiryTimestamp(creationTs v1.Time, ttl int) string
 	//Slot CET to bucket by sub 30 mins
 	slotted := false
 	//as long as the expiry time is not slotted to an available bucket loop and decrement 30 mins from exp time
-	drecementedProjectedExpiry := projectedExpiryTs
+	decrementedProjectedExpiry := projectedExpiryTs
 
 	for !slotted {
 		ss.whiteListIntervals.IntervalsBetween(whitelistStart, whitelistEnd, func(start, end time.Time) bool {
-			if start.Before(drecementedProjectedExpiry) && end.After(drecementedProjectedExpiry) {
+			if start.Before(decrementedProjectedExpiry) && end.After(decrementedProjectedExpiry) {
 
 				slotted = true
 				return false
@@ -180,7 +180,7 @@ func (ss *spotterService) getExpiryTimestamp(creationTs v1.Time, ttl int) string
 			return true
 		})
 		if !slotted {
-			drecementedProjectedExpiry = drecementedProjectedExpiry.Add(-30 * time.Minute)
+			decrementedProjectedExpiry = decrementedProjectedExpiry.Add(-30 * time.Minute)
 		}
 
 	}
@@ -203,13 +203,13 @@ func (ss *spotterService) getExpiryTimestamp(creationTs v1.Time, ttl int) string
 
 	}
 
-	ss.logger.Info(fmt.Sprintf("DrecementedProjectedExpiry =>  %v", drecementedProjectedExpiry))
+	ss.logger.Info(fmt.Sprintf("DrecementedProjectedExpiry =>  %v", decrementedProjectedExpiry))
 	ss.logger.Info(fmt.Sprintf("IncrementedProjectedExpiry =>  %v", incrementedProjectedExpiry))
 
 	var finalExpTime time.Time
 
-	if cet.Sub(drecementedProjectedExpiry) < incrementedProjectedExpiry.Sub(cet) {
-		finalExpTime = drecementedProjectedExpiry
+	if cet.Sub(decrementedProjectedExpiry) < incrementedProjectedExpiry.Sub(cet) {
+		finalExpTime = decrementedProjectedExpiry
 	} else {
 		finalExpTime = incrementedProjectedExpiry
 	}
