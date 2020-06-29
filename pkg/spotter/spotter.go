@@ -133,9 +133,11 @@ func midnight(t time.Time) time.Time {
 	return time.Date(year, month, day, 0, 0, 0, 0, t.Location())
 }
 
-func add30Min(t time.Time) time.Time {
+// addMinToClock Increment given min to clock, but won't change date,
+// To decrement set min < 0
+func addMinToClock(t time.Time, min int) time.Time {
 	year, month, day := t.Date()
-	hour, min, sec := t.Add(30 * time.Minute).Clock()
+	hour, min, sec := t.Add(time.Duration(min) * time.Minute).Clock()
 
 	return time.Date(year, month, day, hour, min, sec, 0, t.Location())
 }
@@ -180,7 +182,7 @@ func (ss *spotterService) getExpiryTimestamp(creationTs v1.Time, ttl int) string
 			return true
 		})
 		if !slotted {
-			decrementedProjectedExpiry = decrementedProjectedExpiry.Add(-30 * time.Minute)
+			decrementedProjectedExpiry = addMinToClock(decrementedProjectedExpiry, -30)
 		}
 
 	}
@@ -198,7 +200,7 @@ func (ss *spotterService) getExpiryTimestamp(creationTs v1.Time, ttl int) string
 			return true
 		})
 		if !slotted {
-			incrementedProjectedExpiry = add30Min(incrementedProjectedExpiry)
+			incrementedProjectedExpiry = addMinToClock(incrementedProjectedExpiry, 30)
 		}
 
 	}
