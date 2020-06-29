@@ -11,7 +11,7 @@ import (
 	"github.com/roppenlabs/silent-assassin/pkg/config"
 	"github.com/roppenlabs/silent-assassin/pkg/k8s"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -89,14 +89,15 @@ func (ss spotterService) spot() {
 
 	for _, node := range nodes.Items {
 		nodeAnnotations := node.GetAnnotations()
-		creationTimeStamp := node.GetCreationTimestamp()
+
 		if _, ok := nodeAnnotations[config.SpotterExpiryTimeAnnotation]; ok {
 			continue
 		}
 		if nodeAnnotations == nil {
 			nodeAnnotations = make(map[string]string, 0)
 		}
-		expiryTime := ss.getExpiryTimestamp(creationTimeStamp, ss.cp.GetInt(config.SpotterTTLHours))
+		expiryTime := ss.getExpiryTimestamp(node, ss.cp.GetInt(config.SpotterTTLHours))
+		ss.logger.Debug(fmt.Sprintf("spot() : Node = %v Creation Time = [ %v ] Expirty Time [ %v ]", node.Name, node.GetCreationTimestamp(), expiryTime))
 		nodeAnnotations[config.SpotterExpiryTimeAnnotation] = expiryTime
 
 		node.SetAnnotations(nodeAnnotations)
@@ -131,6 +132,7 @@ func (ss *spotterService) initWhitelist() {
 		}
 		ss.whiteListIntervals.Insert(start, end)
 	}
+	ss.logger.Info(fmt.Sprintf("Whitelist set initialized : %v", ss.whiteListIntervals))
 }
 func midnight(t time.Time) time.Time {
 	year, month, day := t.Date()
@@ -146,11 +148,11 @@ func addMinToClock(t time.Time, min int) time.Time {
 	return time.Date(year, month, day, hour, min, sec, 0, t.Location())
 }
 
-func (ss *spotterService) getExpiryTimestamp(creationTs v1.Time, ttl int) string {
+func (ss *spotterService) getExpiryTimestamp(node v1.Node, ttl int) string {
 
 	var cet, creationTsUTC time.Time
-	creationTsUTC = creationTs.Time.UTC()
-
+	creationTsUTC = node.GetCreationTimestamp().Time.UTC()
+	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Created time = [ %v ] Created Time in UTC = [ %v ]", node.Name, node.GetCreationTimestamp(), creationTsUTC))
 	if ttl > 0 {
 		cet = creationTsUTC.Add(time.Duration(ttl) * time.Hour)
 	} else if ttl < 0 {
@@ -159,6 +161,7 @@ func (ss *spotterService) getExpiryTimestamp(creationTs v1.Time, ttl int) string
 		// cet = et.Add(time.Duration(ttl) * time.Hour)
 	}
 
+	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Calculated Expiry time (CT+TTL) before slotting = [ %v ]", node.Name, cet))
 	//We need this to compare against our whitelist intervals which is a hard-coded date + time interval
 	//we dont'worry about date but time for slotting
 	//once we find the ideal slot for CET we project it back to actual time
@@ -166,12 +169,7 @@ func (ss *spotterService) getExpiryTimestamp(creationTs v1.Time, ttl int) string
 	truncatedExpiryTs := midnight(cet)
 	projectedExpiryTs := whitelistStart.Add(cet.Sub(truncatedExpiryTs))
 
-	ss.logger.Info(fmt.Sprintf("Created time %v", creationTs))
-	ss.logger.Info(fmt.Sprintf("Created time UTC %v", creationTsUTC))
-	ss.logger.Info(fmt.Sprintf("TruncatedExpiryTs %v", truncatedExpiryTs))
-	ss.logger.Info(fmt.Sprintf("Calculated Expiry time %v", cet))
-	ss.logger.Info(fmt.Sprintf("ProjectedExpiryTs %v", projectedExpiryTs))
-	ss.logger.Info(fmt.Sprintf("Whitelist =>  %v", ss.whiteListIntervals))
+	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Truncated Expiry time = [ %v ] Projected Expiry Time [ %v ]", node.Name, truncatedExpiryTs, projectedExpiryTs))
 
 	ch1 := make(chan time.Time)
 	go ss.slotExpiryTimeToBucket(projectedExpiryTs, -30, ch1)
@@ -188,8 +186,7 @@ func (ss *spotterService) getExpiryTimestamp(creationTs v1.Time, ttl int) string
 		}
 	}
 
-	ss.logger.Info(fmt.Sprintf("DrecementedProjectedExpiry =>  %v", decrementedProjectedExpiry))
-	ss.logger.Info(fmt.Sprintf("IncrementedProjectedExpiry =>  %v", incrementedProjectedExpiry))
+	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v DecrementedProjectedExpiry = [ %v ] IncrementedProjectedExpiry [ %v ]", node.Name, decrementedProjectedExpiry, incrementedProjectedExpiry))
 
 	var finalExpTime time.Time
 
@@ -201,23 +198,25 @@ func (ss *spotterService) getExpiryTimestamp(creationTs v1.Time, ttl int) string
 
 	//Project it back to actual date
 	expTime := truncatedExpiryTs.Add(finalExpTime.Sub(whitelistStart))
+	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Calculated Expiry time afte slotting [ %v ]", node.Name, expTime))
 
 	if expTime.Before(creationTsUTC) {
+		ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Calculated Expiry before Creation time adding 24 Hours", node.Name))
 		expTime = expTime.Add(24 * time.Hour)
 	}
 
 	if expTime.After(creationTsUTC.Add(24 * time.Hour)) {
+		ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Calulated Expiry After actual Expiry sub 24 Hours", node.Name))
 		expTime = expTime.Add(-24 * time.Hour)
 	}
 
-	ss.logger.Info(fmt.Sprintf("CET Slotted =>  %v", expTime.String()))
 	return expTime.Format(time.RFC1123Z)
 }
 
 func (ss *spotterService) slotExpiryTimeToBucket(projectedExpiryTs time.Time, increment int, ch chan time.Time) {
 	slotted := false
 	slottedProjectedExpiry := projectedExpiryTs
-	//as long as the expiry time is not slotted to an available bucket loop and increment 30 mins to exp time
+	//as long as the expiry time is not slotted to an available bucket loop and add increment mins (to decrement add negative) to exp time
 	for !slotted {
 		ss.whiteListIntervals.IntervalsBetween(whitelistStart, whitelistEnd, func(start, end time.Time) bool {
 			if start.Before(slottedProjectedExpiry) && end.After(slottedProjectedExpiry) {
