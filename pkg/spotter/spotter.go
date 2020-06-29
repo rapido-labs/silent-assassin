@@ -167,42 +167,19 @@ func (ss *spotterService) getExpiryTimestamp(creationTs v1.Time, ttl int) string
 	ss.logger.Info(fmt.Sprintf("ProjectedExpiryTs %v", projectedExpiryTs))
 	ss.logger.Info(fmt.Sprintf("Whitelist =>  %v", ss.whiteListIntervals))
 
-	//Slot CET to bucket by sub 30 mins
-	slotted := false
-	//as long as the expiry time is not slotted to an available bucket loop and decrement 30 mins from exp time
-	decrementedProjectedExpiry := projectedExpiryTs
+	ch1 := make(chan time.Time)
+	go ss.slotExpiryTimeToBucket(projectedExpiryTs, -30, ch1)
 
-	for !slotted {
-		ss.whiteListIntervals.IntervalsBetween(whitelistStart, whitelistEnd, func(start, end time.Time) bool {
-			if start.Before(decrementedProjectedExpiry) && end.After(decrementedProjectedExpiry) {
+	ch2 := make(chan time.Time)
+	go ss.slotExpiryTimeToBucket(projectedExpiryTs, 30, ch2)
 
-				slotted = true
-				return false
-			}
-			return true
-		})
-		if !slotted {
-			decrementedProjectedExpiry = addMinToClock(decrementedProjectedExpiry, -30)
+	var decrementedProjectedExpiry, incrementedProjectedExpiry time.Time
+
+	for i := 0; i < 2; i++ {
+		select {
+		case decrementedProjectedExpiry = <-ch1:
+		case incrementedProjectedExpiry = <-ch2:
 		}
-
-	}
-
-	slotted = false
-	incrementedProjectedExpiry := projectedExpiryTs
-	//as long as the expiry time is not slotted to an available bucket loop and increment 30 mins to exp time
-	for !slotted {
-		ss.whiteListIntervals.IntervalsBetween(whitelistStart, whitelistEnd, func(start, end time.Time) bool {
-			if start.Before(incrementedProjectedExpiry) && end.After(incrementedProjectedExpiry) {
-
-				slotted = true
-				return false
-			}
-			return true
-		})
-		if !slotted {
-			incrementedProjectedExpiry = addMinToClock(incrementedProjectedExpiry, 30)
-		}
-
 	}
 
 	ss.logger.Info(fmt.Sprintf("DrecementedProjectedExpiry =>  %v", decrementedProjectedExpiry))
@@ -229,4 +206,25 @@ func (ss *spotterService) getExpiryTimestamp(creationTs v1.Time, ttl int) string
 
 	ss.logger.Info(fmt.Sprintf("CET Slotted =>  %v", expTime.String()))
 	return expTime.String()
+}
+
+func (ss *spotterService) slotExpiryTimeToBucket(projectedExpiryTs time.Time, increment int, ch chan time.Time) {
+	slotted := false
+	slottedProjectedExpiry := projectedExpiryTs
+	//as long as the expiry time is not slotted to an available bucket loop and increment 30 mins to exp time
+	for !slotted {
+		ss.whiteListIntervals.IntervalsBetween(whitelistStart, whitelistEnd, func(start, end time.Time) bool {
+			if start.Before(slottedProjectedExpiry) && end.After(slottedProjectedExpiry) {
+
+				slotted = true
+				return false
+			}
+			return true
+		})
+		if !slotted {
+			slottedProjectedExpiry = addMinToClock(slottedProjectedExpiry, increment)
+		}
+
+	}
+	ch <- slottedProjectedExpiry
 }
