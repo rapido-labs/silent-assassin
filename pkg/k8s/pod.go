@@ -16,10 +16,7 @@ func (kc KubernetesClient) GetPodsInNode(name string) ([]v1.Pod, error) {
 	if err != nil {
 		return pods, err
 	}
-
-	for _, pod := range podList.Items {
-		pods = append(pods, pod)
-	}
+	pods = podList.Items
 
 	return pods, err
 

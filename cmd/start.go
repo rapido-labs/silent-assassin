@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -33,7 +34,7 @@ var startCmd = &cobra.Command{
 		kubeClient := k8s.NewClient(configProvider, zapLogger)
 		gcloudClient, err := gcloud.NewClient(zapLogger)
 		if err != nil {
-			zapLogger.Error("Error creating gcloud client")
+			zapLogger.Error(fmt.Sprintf("Error creating gcloud client: %s", err.Error()))
 		}
 
 		ss := spotter.NewSpotterService(configProvider, zapLogger, kubeClient)
