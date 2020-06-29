@@ -2,12 +2,14 @@ SPOTTER:
   POLL_INTERVAL_MS: 1000
   LABEL_SELECTORS:
     - cloud.google.com/gke-preemptible=true
-    - cloud.google.com/gke-nodepool=monitoring-2
+    - cloud.google.com/gke-nodepool=services
+
+KILLER:
+  POLL_INTERVAL_MS: 100000
+  DRAINING_TIMEOUT: 300
 
 LOGGER:
   LEVEL: debug # debug | info | warn | error
-  
 
 KUBERNETES:
   RUN_MODE: OutCluster # InCluster | OutCluster
-  
