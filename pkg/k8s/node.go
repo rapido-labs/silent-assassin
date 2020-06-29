@@ -27,8 +27,26 @@ func (kc KubernetesClient) GetNodes(labels []string) *v1.NodeList {
 	return nodes
 }
 
+func (kc KubernetesClient) GetNode(name string) (v1.Node, error) {
+	options := metav1.GetOptions{}
+
+	node, err := kc.CoreV1().Nodes().Get(name, options)
+	return *node, err
+}
+
 func (kc KubernetesClient) AnnotateNode(node v1.Node) error {
 
 	_, err := kc.CoreV1().Nodes().Update(&node)
+	return err
+}
+
+func (kc KubernetesClient) UpdateNode(node v1.Node) error {
+	_, err := kc.CoreV1().Nodes().Update(&node)
+	return err
+}
+
+func (kc KubernetesClient) DeleteNode(name string) error {
+	options := &metav1.DeleteOptions{}
+	err := kc.CoreV1().Nodes().Delete(name, options)
 	return err
 }
