@@ -22,7 +22,7 @@ const (
 	whitelistEndPrefix = "2000-01-02T"
 
 	// whitelistTimePostfix in `:ssZ` format, can be anything
-	whitelistTimePostfix = ":00+05:30"
+	whitelistTimePostfix = ":00Z"
 )
 
 var (
@@ -125,6 +125,10 @@ func (ss *spotterService) initWhitelist() {
 			ss.logger.Error(fmt.Sprintf("Error parsing WhiteList End date Reason: %v", err))
 			panic(err)
 		}
+		if end.Before(start) {
+			ss.whiteListIntervals.Insert(start, whitelistEnd)
+			start = whitelistStart
+		}
 		ss.whiteListIntervals.Insert(start, end)
 	}
 }
@@ -144,10 +148,11 @@ func addMinToClock(t time.Time, min int) time.Time {
 
 func (ss *spotterService) getExpiryTimestamp(creationTs v1.Time, ttl int) string {
 
-	var cet time.Time
+	var cet, creationTsUTC time.Time
+	creationTsUTC = creationTs.Time.UTC()
 
 	if ttl > 0 {
-		cet = creationTs.Time.Add(time.Duration(ttl) * time.Hour)
+		cet = creationTsUTC.Add(time.Duration(ttl) * time.Hour)
 	} else if ttl < 0 {
 		panic("TTL Cannot be negative")
 		// et := creationTimeUTC.Add(time.Duration(24) * time.Hour)
@@ -162,6 +167,7 @@ func (ss *spotterService) getExpiryTimestamp(creationTs v1.Time, ttl int) string
 	projectedExpiryTs := whitelistStart.Add(cet.Sub(truncatedExpiryTs))
 
 	ss.logger.Info(fmt.Sprintf("Created time %v", creationTs))
+	ss.logger.Info(fmt.Sprintf("Created time UTC %v", creationTsUTC))
 	ss.logger.Info(fmt.Sprintf("TruncatedExpiryTs %v", truncatedExpiryTs))
 	ss.logger.Info(fmt.Sprintf("Calculated Expiry time %v", cet))
 	ss.logger.Info(fmt.Sprintf("ProjectedExpiryTs %v", projectedExpiryTs))
@@ -196,16 +202,16 @@ func (ss *spotterService) getExpiryTimestamp(creationTs v1.Time, ttl int) string
 	//Project it back to actual date
 	expTime := truncatedExpiryTs.Add(finalExpTime.Sub(whitelistStart))
 
-	if expTime.Before(creationTs.Time) {
+	if expTime.Before(creationTsUTC) {
 		expTime = expTime.Add(24 * time.Hour)
 	}
 
-	if expTime.After(creationTs.Time.Add(24 * time.Hour)) {
+	if expTime.After(creationTsUTC.Add(24 * time.Hour)) {
 		expTime = expTime.Add(-24 * time.Hour)
 	}
 
 	ss.logger.Info(fmt.Sprintf("CET Slotted =>  %v", expTime.String()))
-	return expTime.String()
+	return expTime.Format(time.RFC1123Z)
 }
 
 func (ss *spotterService) slotExpiryTimeToBucket(projectedExpiryTs time.Time, increment int, ch chan time.Time) {
