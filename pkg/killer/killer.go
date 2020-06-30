@@ -90,17 +90,10 @@ func (ks killerService) findExpiredTimeNodes(labels []string) []v1.Node {
 
 //makeNodeUnschedulable function cordons the node thus disabling scheduling of
 //any new pods on this node during draining.
-func (ks killerService) makeNodeUnschedulable(name string) error {
-	node, err := ks.kubeClient.GetNode(name)
+func (ks killerService) makeNodeUnschedulable(node v1.Node) error {
 
-	if err != nil {
-		ks.logger.Error(fmt.Sprintf("Error while fetching the node %s, %s", name, err.Error()))
-		return err
-	}
 	node.Spec.Unschedulable = true
-
-	err = ks.kubeClient.UpdateNode(node)
-
+	err := ks.kubeClient.UpdateNode(node)
 	return err
 
 }
@@ -141,17 +134,16 @@ func (ks killerService) waitforDrainToFinish(nodeName string, timeout int) error
 		podsPending, err := ks.getPodsToBeDeleted(nodeName)
 
 		if err != nil {
-			ks.logger.Error("Error fetching pods, sleeping")
-			time.Sleep(2 * time.Second)
-			continue
+			ks.logger.Error(fmt.Sprintf("Error fetching pods: %s", err.Error()))
+			return err
 		}
 
 		if len(podsPending) == 0 {
 			return nil
 		}
-		elapsed := int(time.Since(start).Seconds())
+		elapsed := int(time.Since(start).Milliseconds())
 		if elapsed >= timeout {
-			return fmt.Errorf("Drainout timed out. Its more than %d s now", timeout)
+			return fmt.Errorf("Drainout timed out. Drain duration exceeded %d mill seconds", timeout)
 		}
 	}
 }
@@ -199,7 +191,7 @@ func (ks killerService) kill() {
 		ks.logger.Info(fmt.Sprintf("Processing node %s", node.Name))
 
 		//Cordone the node. This will make this node unschedulable for new pods.
-		if err := ks.makeNodeUnschedulable(node.Name); err != nil {
+		if err := ks.makeNodeUnschedulable(node); err != nil {
 			ks.logger.Error(fmt.Sprintf("Failed to cordon the node %s, %s", node.Name, err.Error()))
 			continue
 		}
@@ -213,9 +205,9 @@ func (ks killerService) kill() {
 		}
 
 		//Wait for the pods to get evicted.
-		drainingTimeout := ks.cp.GetInt(config.KillerDrainingTimeoutSecs)
+		drainingTimeout := ks.cp.GetInt(config.KillerDrainingTimeoutMs)
 		if err := ks.waitforDrainToFinish(node.Name, drainingTimeout); err != nil {
-			ks.logger.Error(fmt.Sprintf("Draining node %s exceeded timeout %d seconds", node.Name, drainingTimeout))
+			ks.logger.Error(fmt.Sprintf("Error while waiting for drain on node %s, %s", node.Name, err.Error()))
 			continue
 		}
 		ks.logger.Info(fmt.Sprintf("Successfully drained the node %s", node.Name))

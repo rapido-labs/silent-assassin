@@ -32,7 +32,7 @@ var startCmd = &cobra.Command{
 		configProvider := config.Init(cfgFile)
 		zapLogger := logger.Init(configProvider)
 		kubeClient := k8s.NewClient(configProvider, zapLogger)
-		gcloudClient, err := gcloud.NewClient(zapLogger)
+		gcloudClient, err := gcloud.NewClient()
 		if err != nil {
 			zapLogger.Error(fmt.Sprintf("Error creating gcloud client: %s", err.Error()))
 		}

@@ -3,21 +3,19 @@ package gcloud
 import (
 	"context"
 
-	"github.com/roppenlabs/silent-assassin/pkg/logger"
 	"golang.org/x/oauth2/google"
 	compute "google.golang.org/api/compute/v1"
 )
 
 type GCloudClient struct {
 	Service *compute.Service
-	logger  logger.IZapLogger
 }
 
 type IGCloudClient interface {
 	DeleteNode(projectID, zone, name string) error
 }
 
-func NewClient(zl logger.IZapLogger) (IGCloudClient, error) {
+func NewClient() (IGCloudClient, error) {
 	var gClient IGCloudClient
 
 	client, err := google.DefaultClient(context.Background(), compute.ComputeScope)

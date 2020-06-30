@@ -5,8 +5,8 @@ SPOTTER:
     - cloud.google.com/gke-nodepool=services
 
 KILLER:
-  POLL_INTERVAL_MS: 100000
-  DRAINING_TIMEOUT: 300
+  POLL_INTERVAL_MS: 1000
+  DRAINING_TIMEOUT_MS: 300000
 
 LOGGER:
   LEVEL: debug # debug | info | warn | error
