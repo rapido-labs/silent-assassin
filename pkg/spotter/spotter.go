@@ -198,7 +198,7 @@ func (ss *spotterService) getExpiryTimestamp(node v1.Node, ttl int) string {
 
 	//Project it back to actual date
 	expTime := truncatedExpiryTs.Add(finalExpTime.Sub(whitelistStart))
-	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Calculated Expiry time afte slotting [ %v ]", node.Name, expTime))
+	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Calculated Expiry time after slotting [ %v ]", node.Name, expTime))
 
 	if expTime.Before(creationTsUTC) {
 		ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Calculated Expiry before Creation time adding 24 Hours", node.Name))
@@ -206,7 +206,7 @@ func (ss *spotterService) getExpiryTimestamp(node v1.Node, ttl int) string {
 	}
 
 	if expTime.After(creationTsUTC.Add(24 * time.Hour)) {
-		ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Calulated Expiry After actual Expiry sub 24 Hours", node.Name))
+		ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Calculated Expiry After actual Expiry sub 24 Hours", node.Name))
 		expTime = expTime.Add(-24 * time.Hour)
 	}
 
