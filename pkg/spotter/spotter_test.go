@@ -28,18 +28,19 @@ func (s *SpotterTestSuite) SetupTest() {
 	s.configMock.On("GetString", mock.Anything).Return("debug")
 	s.configMock.On("GetInt", "spotter.poll_interval_ms").Return(10)
 	s.configMock.On("GetStringSlice", "spotter.label_selectors").Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
-	s.configMock.On("GetInt", config.SpotterTTLHours).Return(int(18))
-	s.configMock.On("GetStringSlice", config.SpotterWhiteListIntervalHours).Return([]string{"06:30-08:30", "18:30-00:30"})
 
 	s.logger = logger.Init(s.configMock)
 }
 
 func (suite *SpotterTestSuite) TestShouldFetchNodesWithLabels() {
 
+	suite.configMock.On("GetStringSlice", config.SpotterWhiteListIntervalHours).Return([]string{"00:00-06:00", "12:00-14:00"})
+	suite.configMock.On("GetInt", config.SpotterTTLHours).Return(int(18))
 	suite.k8sMock.On("GetNodes", []string{"cloud.google.com/gke-preemptible=true,label2=test"}).Return(&v1.NodeList{})
 
 	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock)
 	ss.initWhitelist()
+
 	ss.spot()
 
 	suite.k8sMock.AssertExpectations(suite.T())
@@ -51,13 +52,13 @@ func (suite *SpotterTestSuite) TestShouldAnnotateIfAbsent() {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "Node-1",
 			Annotations: map[string]string{"silent-assassin/expiry-time": time.Now().String()}}}
-
+	suite.configMock.On("GetStringSlice", config.SpotterWhiteListIntervalHours).Return([]string{"00:00-06:00", "12:00-14:00"})
 	nodeToBeAnnotated := v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "Node-2"}}
 
 	nodeList := v1.NodeList{
 		Items: []v1.Node{nodeAlreadyAnnotated, nodeToBeAnnotated},
 	}
-
+	suite.configMock.On("GetInt", config.SpotterTTLHours).Return(int(18))
 	suite.k8sMock.On("GetNodes", mock.Anything).Return(&nodeList)
 	suite.k8sMock.On("AnnotateNode", mock.MatchedBy(func(input v1.Node) bool {
 
@@ -72,52 +73,11 @@ func (suite *SpotterTestSuite) TestShouldAnnotateIfAbsent() {
 
 	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock)
 	ss.initWhitelist()
+
 	ss.spot()
 
 	suite.k8sMock.AssertExpectations(suite.T())
 }
-
-// func (suite *SpotterTestSuite) TestShouldAppendExpiryTimeAs12HoursFromCreation() {
-
-// 	creationTimestamp, _ := time.Parse(time.RFC1123Z, "Mon, 22 Jun 2020 12:54:45 +0530")
-
-// 	nodeAlreadyAnnotated := v1.Node{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:              "Node-1",
-// 			CreationTimestamp: metav1.NewTime(creationTimestamp),
-// 			Annotations:       map[string]string{"silent-assassin/expiry-time": time.Now().String()}}}
-
-// 	nodeToBeAnnotated := v1.Node{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:              "Node-2",
-// 			CreationTimestamp: metav1.NewTime(creationTimestamp),
-// 			Annotations:       map[string]string{"node.alpha.kubernetes.io/ttl": "0"}}}
-
-// 	nodeList := v1.NodeList{
-// 		Items: []v1.Node{nodeAlreadyAnnotated, nodeToBeAnnotated},
-// 	}
-// 	suite.k8sMock.On("GetNodes", mock.Anything).Return(&nodeList)
-// 	suite.k8sMock.On("AnnotateNode", mock.MatchedBy(func(input v1.Node) bool {
-// 		expiryTimeAsString, found := input.ObjectMeta.Annotations["silent-assassin/expiry-time"]
-
-// 		if !found {
-// 			return false
-// 		}
-// 		expiryTime, _ := time.Parse(time.RFC1123Z, expiryTimeAsString)
-
-// 		assert.Equal(suite.T(), "Node-2", input.ObjectMeta.Name, "Node name is not matching")
-// 		assert.Equal(suite.T(), 2, len(input.ObjectMeta.Annotations), "Annotations count not matching")
-// 		assert.Equal(suite.T(), creationTimestamp.Add(time.Hour*12), expiryTime, "CreationTimestamp is not matching")
-// 		return true
-
-// 	})).Return(nil)
-
-// 	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock)
-
-// 	ss.spot()
-
-// 	suite.k8sMock.AssertExpectations(suite.T())
-// }
 
 func TestSpotterTestSuite(t *testing.T) {
 	suite.Run(t, new(SpotterTestSuite))
