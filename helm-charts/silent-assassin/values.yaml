@@ -6,10 +6,8 @@ revisionHistoryLimit: 4
 containerPort: 8080
 environment: development
 team: devops
-image:
-  repository: asia.gcr.io/staging-host-12358/silent-assassin
-  tag: "latest"
-  pullPolicy: Always
+imageConfig:
+  pullPolicy: Always 
 
 resources:
   enabled: true

@@ -1,5 +1,10 @@
 environment: development
 
+image:
+  repository: asia.gcr.io/staging-host-12358/silent-assassin
+  tag: "latest"
+  pullPolicy: Always 
+
 resources:
   enabled: false
 
