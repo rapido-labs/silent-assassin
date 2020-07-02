@@ -9,16 +9,16 @@ team: devops
 image:
   repository: asia.gcr.io/staging-host-12358/silent-assassin
   tag: "latest"
-  pullPolicy: Always 
+  pullPolicy: Always
 
 resources:
   enabled: true
   requests:
     cpu: 1
-    memory: 1024Mi 
+    memory: 1024Mi
   limits:
     cpu: 2
-    memory: 2048Mi     
+    memory: 2048Mi
 
 livenessProbe:
   enabled: false
@@ -72,3 +72,16 @@ affinity:
           values:
           - services
 
+# when using workload identity set this to the Google Cloud Service Account
+workloadIdentityServiceAccount:
+  enabled: false
+  name: ""
+
+secret:
+  # if set to true the values are already base64 encoded when provided, otherwise the template performs the base64 encoding
+  # this value will be ignored if workloadIdentityServiceAccount is enabled.
+  valuesAreBase64Encoded: false
+
+  # sets a json keyfile for a gcp service account
+  # this value will be ignored if workloadIdentityServiceAccount is enabled.
+  googleServiceAccountKeyfileJson: '{"type": "service_account"}'
