@@ -2,6 +2,7 @@ package spotter
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -73,113 +74,62 @@ func midnight(t time.Time) time.Time {
 	return time.Date(year, month, day, 0, 0, 0, 0, t.Location())
 }
 
-// addMinToClock Increment given min to clock, but won't change date,
-// To decrement set min < 0
-func addMinToClock(t time.Time, min int) time.Time {
-	year, month, day := t.Date()
-	hour, min, sec := t.Add(time.Duration(min) * time.Minute).Clock()
-
-	return time.Date(year, month, day, hour, min, sec, 0, t.Location())
+func randomNumber(a, b int) int {
+	rand.Seed(time.Now().UnixNano())
+	return a + rand.Intn(b-a+1)
 }
 
-//absSub Will substract two Durations and return the absolute value
-func absSub(t1, t2 time.Time) time.Duration {
-	if t1.After(t2) {
-		return t1.Sub(t2)
-	}
-	return t2.Sub(t1)
+func randomMinuntes(t1, t2 time.Time) time.Duration {
+	interval := t2.Sub(t1).Minutes()
+	randMins := randomNumber(0, int(interval))
+	return time.Duration(randMins)
 }
 
-func (ss *spotterService) getExpiryTimestamp(node v1.Node, ttl int) string {
+func (ss *spotterService) getExpiryTimestamp(node v1.Node) string {
 
-	var cet, creationTsUTC time.Time
-	creationTsUTC = node.GetCreationTimestamp().Time.UTC()
+	creationTsUTC := node.GetCreationTimestamp().Time.UTC()
+	var saExpirtyTime time.Time
+
 	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Created time = [ %v ] Created Time in UTC = [ %v ]", node.Name, node.GetCreationTimestamp(), creationTsUTC))
-	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : TTL = %d", ttl))
-	if ttl > 0 {
-		cet = creationTsUTC.Add(time.Duration(ttl) * time.Hour)
-	} else if ttl < 0 {
-		panic("TTL Cannot be negative")
-		// et := creationTimeUTC.Add(time.Duration(24) * time.Hour)
-		// cet = et.Add(time.Duration(ttl) * time.Hour)
-	}
 
-	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Calculated Expiry time (CT+TTL) before slotting = [ %v ]", node.Name, cet))
+	truncatedCT := midnight(creationTsUTC)
+	projectedCT := whitelistStart.Add(creationTsUTC.Sub(truncatedCT))
 
-	//We need this to compare against our whitelist intervals which is a hard-coded date + time interval
-	//we dont'worry about date but time for slotting
-	//once we find the ideal slot for CET we project it back to actual time
-	truncatedExpiryTs := midnight(cet)
-	projectedExpiryTs := whitelistStart.Add(cet.Sub(truncatedExpiryTs))
+	actualExpiry := creationTsUTC.Add(24 * time.Hour)
 
-	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Truncated Expiry time = [ %v ] Projected Expiry Time [ %v ]", node.Name, truncatedExpiryTs, projectedExpiryTs))
+	truncatedET := midnight(actualExpiry)
+	projectedET := whitelistStart.Add(actualExpiry.Sub(truncatedET)).Add(24 * time.Hour)
 
-	ch1 := make(chan time.Time)
-	go ss.slotExpiryTimeToBucket(projectedExpiryTs, -30, ch1)
+	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Projected CT = [ %v ] Projected ExpiryTime = [ %v ]", node.Name, projectedCT, projectedET))
 
-	ch2 := make(chan time.Time)
-	go ss.slotExpiryTimeToBucket(projectedExpiryTs, 30, ch2)
+	for day := 0; day < 2; day++ {
 
-	var decrementedProjectedExpiry, incrementedProjectedExpiry time.Time
-
-	for i := 0; i < 2; i++ {
-		select {
-		case decrementedProjectedExpiry = <-ch1:
-		case incrementedProjectedExpiry = <-ch2:
-		}
-	}
-
-	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v DecrementedProjectedExpiry = [ %v ] IncrementedProjectedExpiry [ %v ]", node.Name, decrementedProjectedExpiry, incrementedProjectedExpiry))
-
-	decrementedProjectedExpiry = truncatedExpiryTs.Add(decrementedProjectedExpiry.Sub(whitelistStart))
-	incrementedProjectedExpiry = truncatedExpiryTs.Add(incrementedProjectedExpiry.Sub(whitelistStart))
-	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : PRORJECTED BACK Node = %v DecrementedProjectedExpiry = [ %v ] IncrementedProjectedExpiry [ %v ]", node.Name, decrementedProjectedExpiry, incrementedProjectedExpiry))
-	var finalExpTime time.Time
-
-	//Incremented Time always need not be after CET if it cycle back
-	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v absSub(cet, decrementedProjectedExpiry) %v", node.Name, absSub(cet, decrementedProjectedExpiry)))
-	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v absSub(incrementedProjectedExpiry, cet) %v", node.Name, absSub(incrementedProjectedExpiry, cet)))
-	if absSub(cet, decrementedProjectedExpiry) < absSub(incrementedProjectedExpiry, cet) {
-		finalExpTime = decrementedProjectedExpiry
-	} else {
-		finalExpTime = incrementedProjectedExpiry
-	}
-
-	//Project it back to actual date
-	expTime := finalExpTime
-
-	if expTime.Before(creationTsUTC) {
-		ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Calculated Expiry before Creation time adding 24 Hours", node.Name))
-		expTime = expTime.Add(24 * time.Hour)
-	}
-
-	if expTime.After(creationTsUTC.Add(24 * time.Hour)) {
-		ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Calculated Expiry After actual Expiry sub 24 Hours", node.Name))
-		expTime = expTime.Add(-24 * time.Hour)
-	}
-
-	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Calculated Expiry time after slotting [ %v ]", node.Name, expTime))
-
-	return expTime.Format(time.RFC1123Z)
-}
-
-func (ss *spotterService) slotExpiryTimeToBucket(projectedExpiryTs time.Time, increment int, ch chan time.Time) {
-	slotted := false
-	slottedProjectedExpiry := projectedExpiryTs
-	//as long as the expiry time is not slotted to an available bucket loop and add increment mins (to decrement add negative) to exp time
-	for !slotted {
 		ss.whiteListIntervals.IntervalsBetween(whitelistStart, whitelistEnd, func(start, end time.Time) bool {
-			if start.Before(slottedProjectedExpiry) && end.After(slottedProjectedExpiry) {
-
-				slotted = true
-				return false
+			if day == 1 {
+				start = start.Add(24 * time.Hour)
+				end = end.Add(24 * time.Hour)
 			}
+			ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Current Interval Node = %v Day = %d, start = [ %v ], end = [ %v ], saExpirtyTime = [ %v ]", node.Name, day, start, end, saExpirtyTime))
+			if projectedCT.Before(start) && end.Before(projectedET) {
+				timeToBeAdded := randomMinuntes(start, end)
+				saExpirtyTime = start.Add(time.Duration(timeToBeAdded) * time.Minute)
+
+				ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Eligible Interval Node = %v Day = %d, start = [ %v ], end = [ %v ], saExpirtyTime = [ %v ]", node.Name, day, start, end, saExpirtyTime))
+			}
+
 			return true
 		})
-		if !slotted {
-			slottedProjectedExpiry = addMinToClock(slottedProjectedExpiry, increment)
-		}
 
 	}
-	ch <- slottedProjectedExpiry
+	if saExpirtyTime.IsZero() {
+		panic("Cannot find a date")
+	}
+
+	finalexp := midnight(creationTsUTC).Add(saExpirtyTime.Sub(whitelistStart))
+
+	if finalexp.After(actualExpiry) {
+		panic("The Expiry time we calculated is after Actual Expiry Time :facepalm")
+	}
+	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Final Expiry = [ %v ]", node.Name, finalexp))
+	return finalexp.Format(time.RFC1123Z)
 }

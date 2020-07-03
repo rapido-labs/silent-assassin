@@ -61,7 +61,7 @@ func (ss spotterService) spot() {
 		if nodeAnnotations == nil {
 			nodeAnnotations = make(map[string]string, 0)
 		}
-		expiryTime := ss.getExpiryTimestamp(node, ss.cp.GetInt(config.SpotterTTLHours))
+		expiryTime := ss.getExpiryTimestamp(node)
 		ss.logger.Debug(fmt.Sprintf("spot() : Node = %v Creation Time = [ %v ] Expirty Time [ %v ]", node.Name, node.GetCreationTimestamp(), expiryTime))
 		nodeAnnotations[config.SpotterExpiryTimeAnnotation] = expiryTime
 
