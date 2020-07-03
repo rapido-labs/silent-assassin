@@ -71,7 +71,7 @@ func (ks killerService) findExpiredTimeNodes(labels []string) []v1.Node {
 			ks.logger.Warn(fmt.Sprintf("Node %s does not have %s annotation set", node.Name, config.SpotterExpiryTimeAnnotation))
 			continue
 		}
-		expiryDatetime, err := time.Parse(time.RFC3339, timestamp)
+		expiryDatetime, err := time.Parse(time.RFC1123Z, timestamp)
 		if err != nil {
 			ks.logger.Error(fmt.Sprintf("Error parsing expiry datetime with value '%s', %s", expiryDatetime, err.Error()))
 			continue
