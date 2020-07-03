@@ -3,8 +3,9 @@ module github.com/roppenlabs/silent-assassin
 go 1.14
 
 require (
-	github.com/coreos/etcd v3.3.13+incompatible
+	github.com/Azure/go-autorest/autorest v0.9.0 // indirect
 	github.com/go-git/go-git/v5 v5.1.0 // indirect
+	github.com/google/go-intervals v0.0.0-20171120085516-250c62ad245e
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/spf13/cobra v1.0.0

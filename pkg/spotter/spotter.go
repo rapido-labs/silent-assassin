@@ -6,15 +6,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/go-intervals/timespanset"
 	"github.com/roppenlabs/silent-assassin/pkg/config"
 	"github.com/roppenlabs/silent-assassin/pkg/k8s"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
 )
 
 type spotterService struct {
-	cp         config.IProvider
-	logger     logger.IZapLogger
-	kubeClient k8s.IKubernetesClient
+	cp                 config.IProvider
+	logger             logger.IZapLogger
+	kubeClient         k8s.IKubernetesClient
+	whiteListIntervals *timespanset.Set
 }
 
 func NewSpotterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient) spotterService {
@@ -26,7 +28,10 @@ func NewSpotterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubern
 }
 
 func (ss spotterService) Start(ctx context.Context, wg *sync.WaitGroup) {
+
 	ss.logger.Info(fmt.Sprintf("Starting Spotter Loop - Poll Interval : %d", ss.cp.GetInt(config.SpotterPollIntervalMs)))
+
+	ss.initWhitelist()
 
 	for {
 		select {
@@ -49,14 +54,15 @@ func (ss spotterService) spot() {
 
 	for _, node := range nodes.Items {
 		nodeAnnotations := node.GetAnnotations()
-		creationTimeStamp := node.GetCreationTimestamp()
+
 		if _, ok := nodeAnnotations[config.SpotterExpiryTimeAnnotation]; ok {
 			continue
 		}
 		if nodeAnnotations == nil {
 			nodeAnnotations = make(map[string]string, 0)
 		}
-		expiryTime := creationTimeStamp.Add(time.Hour * 12).Format(time.RFC1123Z)
+		expiryTime := ss.getExpiryTimestamp(node)
+		ss.logger.Debug(fmt.Sprintf("spot() : Node = %v Creation Time = [ %v ] Expirty Time [ %v ]", node.Name, node.GetCreationTimestamp(), expiryTime))
 		nodeAnnotations[config.SpotterExpiryTimeAnnotation] = expiryTime
 
 		node.SetAnnotations(nodeAnnotations)

@@ -3,6 +3,9 @@ SPOTTER:
   LABEL_SELECTORS:
     - cloud.google.com/gke-preemptible=true
     - cloud.google.com/gke-nodepool=services
+  WHITE_LIST_INTERVAL_HOURS:
+    - "06:30-08:30"  #IST 12:00-14:00
+    - "18:30-00:30"  #IST 00:00-06:00
 
 KILLER:
   POLL_INTERVAL_MS: 1000
