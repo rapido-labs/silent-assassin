@@ -6,7 +6,6 @@ const SpotterNodeSelectors = "spotter.label_selectors"
 const SpotterPollIntervalMs = "spotter.poll_interval_ms"
 const SpotterExpiryTimeAnnotation = "silent-assassin/expiry-time"
 const SpotterWhiteListIntervalHours = "spotter.white_list_interval_hours"
-const SpotterTTLHours = "spotter.ttl_hours"
 
 //Should be in ms or secs for uniformity??
 const KillerDrainingTimeoutMs = "killer.draining_timeout_ms"
