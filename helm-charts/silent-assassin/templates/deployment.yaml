@@ -82,15 +82,28 @@ spec:
           env:
             - name: RAPIDO_ENV
               value: {{ .Values.environment }}
+            {{- if not .Values.workloadIdentityServiceAccount.enabled }}
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /gcp-service-account/service-account-key.json
+            {{- end }}
           volumeMounts:
             - mountPath: /usr/app/config
               name: config-pv-volume
+          {{- if not .Values.workloadIdentityServiceAccount.enabled }}
+            - name: gcp-service-account-secret
+              mountPath: /gcp-service-account
+          {{- end }}
       volumes:
         - name: config-pv-volume
           emptyDir: {}
         - name: config-template-volume
           configMap:
             name: {{ .Chart.Name }}-config
+        {{- if not .Values.workloadIdentityServiceAccount.enabled }}
+        - name: gcp-service-account-secret
+          secret:
+            secretName: {{ .Chart.Name }}
+        {{- end }}
 {{- if .Values.affinity }}
       affinity:
 {{ toYaml .Values.affinity | indent 8 }}

@@ -5,3 +5,7 @@ resources:
 
 hpa:
   enabled: false
+
+workloadIdentityServiceAccount:
+  enabled: true
+  name: "silent-assassin@development-backend-12358.iam.gserviceaccount.com"
