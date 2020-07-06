@@ -2,7 +2,15 @@
 
 Preemptible Node Killer.
 
-## Steps to create Google service account
+### Development
+
+* Build
+
+```
+skaffold -v trace build -p local
+```
+
+### Steps to create Google service account
 In order to have the silent-assassin delete nodes, reate a service account and give the compute.instances.delete permissions.
 
 You can either create the service account and associate the role using the GCloud web console or the cli:
