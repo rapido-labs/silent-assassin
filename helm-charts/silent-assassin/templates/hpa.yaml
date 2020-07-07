@@ -2,14 +2,14 @@
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ .Chart.Name }}-hpa-policy
+  name: {{ .Release.Name }}-hpa-policy
   labels:
     team: {{ .Values.team }}
 spec:
   scaleTargetRef:
     apiVersion: extensions/v1beta1
     kind: Deployment
-    name: {{ .Chart.Name }}
+    name: {{ .Release.Name }}
   minReplicas: {{ .Values.hpa.minReplicas }}
   maxReplicas: {{ .Values.hpa.maxReplicas }}
   metrics:

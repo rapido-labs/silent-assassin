@@ -3,6 +3,6 @@ data:
    application.yaml: {{ (.Files.Get  "conf/application.yaml") . | quote}}
 kind: ConfigMap
 metadata:
-  name: {{ .Chart.Name }}-config
+  name: {{ .Release.Name }}-config
   labels:
     team: {{ .Values.team }}
