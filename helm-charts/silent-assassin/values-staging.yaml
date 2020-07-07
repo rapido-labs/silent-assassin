@@ -9,3 +9,10 @@ affinity:
           operator: In
           values:
           - services-2
+
+resources:
+  enabled: true
+
+workloadIdentityServiceAccount:
+  enabled: true
+  name: "silent-assassin@staging-backend-12358.iam.gserviceaccount.com"

@@ -1,8 +1,8 @@
 environment: production
 
-image:
-  repository: asia.gcr.io/production-host-12358/silent-assassin
-  tag: "latest"
-  pullPolicy: Always 
+resources:
+  enabled: true
 
-replicaCount: 1
+workloadIdentityServiceAccount:
+  enabled: true
+  name: "silent-assassin@production-backend-12358.iam.gserviceaccount.com"
