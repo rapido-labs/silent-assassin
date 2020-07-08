@@ -28,6 +28,7 @@ var (
 )
 
 func init() {
+	rand.Seed(time.Now().Unix())
 	var err error
 
 	// whitelistStart is the start of the day
@@ -75,7 +76,6 @@ func midnight(t time.Time) time.Time {
 }
 
 func randomNumber(a, b int) int {
-	rand.Seed(time.Now().UnixNano())
 	return a + rand.Intn(b-a+1)
 }
 
@@ -125,7 +125,6 @@ func (ss *spotterService) getExpiryTimestamp(node v1.Node) string {
 		panic("Cannot find a date")
 	}
 
-	rand.Seed(time.Now().Unix())
 	saExpirtyTime := eligibleExpiryTimes[rand.Intn(len(eligibleExpiryTimes))]
 
 	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v elegibleWLIntervals = %v, saExpirtyTime = [ %v ]", node.Name, eligibleExpiryTimes, saExpirtyTime))
