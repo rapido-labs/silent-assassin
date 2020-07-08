@@ -100,7 +100,7 @@ func (ss *spotterService) getExpiryTimestamp(node v1.Node) string {
 	projectedET := whitelistStart.Add(actualExpiry.Sub(truncatedET)).Add(24 * time.Hour)
 
 	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Projected CT = [ %v ] Projected ExpiryTime = [ %v ]", node.Name, projectedCT, projectedET))
-	elegibleWLIntervals := make([]time.Time, 0)
+	eligibleExpiryTimes := make([]time.Time, 0)
 	for day := 0; day < 2; day++ {
 
 		ss.whiteListIntervals.IntervalsBetween(whitelistStart, whitelistEnd, func(start, end time.Time) bool {
@@ -108,12 +108,12 @@ func (ss *spotterService) getExpiryTimestamp(node v1.Node) string {
 				start = start.Add(24 * time.Hour)
 				end = end.Add(24 * time.Hour)
 			}
-			ss.logger.Debug(fmt.Sprintf("GetExpiryTime : [Current Interval] Node = %v Day = %d, start = [ %v ], end = [ %v ], elegibleWLIntervals = [ %v ]", node.Name, day, start, end, elegibleWLIntervals))
+			ss.logger.Debug(fmt.Sprintf("GetExpiryTime : [Current Interval] Node = %v Day = %d, start = [ %v ], end = [ %v ], elegibleWLIntervals = [ %v ]", node.Name, day, start, end, eligibleExpiryTimes))
 			if projectedCT.Before(start) && end.Before(projectedET) {
 				timeToBeAdded := randomMinuntes(start, end)
-				elegibleWLIntervals = append(elegibleWLIntervals, start.Add(time.Duration(timeToBeAdded)*time.Minute))
+				eligibleExpiryTimes = append(eligibleExpiryTimes, start.Add(time.Duration(timeToBeAdded)*time.Minute))
 
-				ss.logger.Debug(fmt.Sprintf("GetExpiryTime : [Eligible Interval] Node = %v Day = %d, start = [ %v ], end = [ %v ], elegibleWLIntervals = [ %v ]", node.Name, day, start, end, elegibleWLIntervals))
+				ss.logger.Debug(fmt.Sprintf("GetExpiryTime : [Eligible Interval] Node = %v Day = %d, start = [ %v ], end = [ %v ], elegibleWLIntervals = [ %v ]", node.Name, day, start, end, eligibleExpiryTimes))
 			}
 
 			return true
@@ -121,14 +121,14 @@ func (ss *spotterService) getExpiryTimestamp(node v1.Node) string {
 
 	}
 
-	if len(elegibleWLIntervals) == 0 {
+	if len(eligibleExpiryTimes) == 0 {
 		panic("Cannot find a date")
 	}
 
 	rand.Seed(time.Now().Unix())
-	saExpirtyTime := elegibleWLIntervals[rand.Intn(len(elegibleWLIntervals))]
+	saExpirtyTime := eligibleExpiryTimes[rand.Intn(len(eligibleExpiryTimes))]
 
-	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v elegibleWLIntervals = %v, saExpirtyTime = [ %v ]", node.Name, elegibleWLIntervals, saExpirtyTime))
+	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v elegibleWLIntervals = %v, saExpirtyTime = [ %v ]", node.Name, eligibleExpiryTimes, saExpirtyTime))
 	finalexp := midnight(creationTsUTC).Add(saExpirtyTime.Sub(whitelistStart))
 
 	if finalexp.After(actualExpiry) {
