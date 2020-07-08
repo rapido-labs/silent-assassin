@@ -32,3 +32,13 @@ $ gcloud projects add-iam-policy-binding $project_id \
 export namespace=<namespace_of_k8s_service_account>
 $ gcloud iam service-accounts add-iam-policy-binding   --role roles/iam.workloadIdentityUser   --member serviceAccount:development-backend-12358.svc.id.goog[$namespace/silent-assassin] silent-assassin
 ```
+
+## Migrate node-pool to use Workload Identity(WI)
+```
+gcloud container node-pools update <nodepool-name> \
+  --cluster=<cluster-name> \
+  --workload-metadata=GKE_METADATA
+  --region <region>
+ ```
+ - This is only required if we are running SA in an existing node-pool.
+ - New node-pools on cluster with WI already enabled will have this set by default.
