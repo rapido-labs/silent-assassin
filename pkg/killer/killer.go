@@ -189,8 +189,8 @@ func (ks killerService) kill() {
 
 	ks.logger.Debug(fmt.Sprintf("Number of nodes to kill %d", len(nodesToDelete)))
 	for _, node := range nodesToDelete {
-
 		ks.logger.Info(fmt.Sprintf("Processing node %s", node.Name))
+		nodeDetail := fmt.Sprintf("Node: %s\nCreation Time: %s\nExpiryTime: %s", node.Name, node.CreationTimestamp, node.Annotations[config.SpotterExpiryTimeAnnotation])
 
 		//Cordone the node. This will make this node unschedulable for new pods.
 		if err := ks.makeNodeUnschedulable(node); err != nil {
@@ -200,15 +200,16 @@ func (ks killerService) kill() {
 		ks.logger.Info(fmt.Sprintf("Cordoned node %s", node.Name))
 
 		// Drain the node,
-		if err := ks.notifier.DrainNode(node); err != nil {
-			ks.logger.Error(fmt.Sprintf("failed to send notification: %s", err.Error()))
-		}
 		if err := ks.startDrainNode(node.Name); err != nil {
 			ks.logger.Error(fmt.Sprintf("Failed to drain the node %s, %s", node.Name, err.Error()))
-			if err := ks.notifier.FailedToDrainNode(node, err); err != nil {
+
+			if err := ks.notifier.Error("DRAIN", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error())); err != nil {
 				ks.logger.Error(fmt.Sprintf("failed to send notification: %s", err.Error()))
 			}
 			continue
+		}
+		if err := ks.notifier.Info("DRAIN", nodeDetail); err != nil {
+			ks.logger.Error(fmt.Sprintf("failed to send notification: %s", err.Error()))
 		}
 
 		//Wait for the pods to get evicted.
@@ -216,7 +217,7 @@ func (ks killerService) kill() {
 
 		if err := ks.waitforDrainToFinish(node.Name, drainingTimeout); err != nil {
 			ks.logger.Error(fmt.Sprintf("Error while waiting for drain on node %s, %s", node.Name, err.Error()))
-			if err := ks.notifier.DrainNodeTimeout(node); err != nil {
+			if err := ks.notifier.Error("DRAIN", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error())); err != nil {
 				ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
 			}
 			continue
@@ -225,28 +226,29 @@ func (ks killerService) kill() {
 
 		// Delete the k8s node
 		ks.logger.Info(fmt.Sprintf("Deleting node %s", node.Name))
-		if err := ks.notifier.DeleteNode(node); err != nil {
-			ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
-		}
 		if err := ks.kubeClient.DeleteNode(node.Name); err != nil {
 			ks.logger.Info(fmt.Sprintf("Error deleting the node %s", node.Name))
-			if err := ks.notifier.FailedToDeleteNode(node, err); err != nil {
+			if err := ks.notifier.Error("DELETE_NODE", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error())); err != nil {
 				ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
 			}
 			continue
+		}
+		if err := ks.notifier.Info("DELETE NODE", nodeDetail); err != nil {
+			ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
 		}
 
 		// Delete gcloud instance.
 		projectID, zone := getProjectIDAndZoneFromNode(node)
 		ks.logger.Info(fmt.Sprintf("Deletig google instance %s", node.Name))
-		if err := ks.notifier.DeleteInstance(node); err != nil {
-			ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
-		}
 		if err := ks.gcloudClient.DeleteNode(projectID, zone, node.Name); err != nil {
 			ks.logger.Error(fmt.Sprintf("Could not kill the node %s", node.Name))
-			if err := ks.notifier.FailedToDeleteInstance(node, err); err != nil {
+			if err := ks.notifier.Error("DELETE_INSTANCE", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error())); err != nil {
 				ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
 			}
+			continue
+		}
+		if err := ks.notifier.Info("DELETE_INSTANCE", nodeDetail); err != nil {
+			ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
 		}
 	}
 }

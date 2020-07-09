@@ -70,18 +70,21 @@ func (ss spotterService) spot() {
 
 		node.SetAnnotations(nodeAnnotations)
 		err := ss.kubeClient.AnnotateNode(node)
+		nodeDetail := fmt.Sprintf("Node: %s\nCreation Time: %s\nExpiryTime: %s", node.Name, node.CreationTimestamp, node.Annotations[config.SpotterExpiryTimeAnnotation])
 
 		if err != nil {
 			ss.logger.Error(fmt.Sprintf("Failed to annotate node : %s", node.ObjectMeta.Name))
-			if err := ss.notifier.FailedToAnnotateNode(node, err); err != nil {
+			if err := ss.notifier.Error("ANNOTATE", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error())); err != nil {
 				ss.logger.Error(fmt.Sprintf("Error sending notification: %s", err.Error()))
 			}
-			// panic(err)
-		}
-		if err := ss.notifier.AnnotateNode(node); err != nil {
-			ss.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
+			continue
 		}
 		ss.logger.Info(fmt.Sprintf("Annotated node : %s", node.ObjectMeta.Name))
+
+		if err := ss.notifier.Info("ANNOTATE", nodeDetail); err != nil {
+			ss.logger.Error(fmt.Sprintf("Error sending notification: %s", err.Error()))
+		}
+
 	}
 
 }
