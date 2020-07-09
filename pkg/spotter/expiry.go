@@ -28,6 +28,7 @@ var (
 )
 
 func init() {
+	rand.Seed(time.Now().Unix())
 	var err error
 
 	// whitelistStart is the start of the day
@@ -51,12 +52,12 @@ func (ss *spotterService) initWhitelist() {
 		times := strings.Split(wl, "-")
 		start, err := time.Parse(time.RFC3339, whitelistStartPrefix+times[0]+whitelistTimePostfix)
 		if err != nil {
-			ss.logger.Error(fmt.Sprintf("Error parsing WhiteList Start date Reason: %v", err))
+			ss.logger.Error(fmt.Sprintf("Spotter: Error parsing WhiteList Start date Reason: %v", err))
 			panic(err)
 		}
 		end, err := time.Parse(time.RFC3339, whitelistStartPrefix+times[1]+whitelistTimePostfix)
 		if err != nil {
-			ss.logger.Error(fmt.Sprintf("Error parsing WhiteList End date Reason: %v", err))
+			ss.logger.Error(fmt.Sprintf("Spotter: Error parsing WhiteList End date Reason: %v", err))
 			panic(err)
 		}
 		if end.Before(start) {
@@ -65,7 +66,7 @@ func (ss *spotterService) initWhitelist() {
 		}
 		ss.whiteListIntervals.Insert(start, end)
 	}
-	ss.logger.Info(fmt.Sprintf("Whitelist set initialized : %v", ss.whiteListIntervals))
+	ss.logger.Info(fmt.Sprintf("Spotter: Whitelist set initialized : %v", ss.whiteListIntervals))
 }
 
 // midnight returns the midnight for the date
@@ -75,7 +76,6 @@ func midnight(t time.Time) time.Time {
 }
 
 func randomNumber(a, b int) int {
-	rand.Seed(time.Now().UnixNano())
 	return a + rand.Intn(b-a+1)
 }
 
@@ -88,7 +88,6 @@ func randomMinuntes(t1, t2 time.Time) time.Duration {
 func (ss *spotterService) getExpiryTimestamp(node v1.Node) string {
 
 	creationTsUTC := node.GetCreationTimestamp().Time.UTC()
-	var saExpirtyTime time.Time
 
 	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Created time = [ %v ] Created Time in UTC = [ %v ]", node.Name, node.GetCreationTimestamp(), creationTsUTC))
 
@@ -101,7 +100,7 @@ func (ss *spotterService) getExpiryTimestamp(node v1.Node) string {
 	projectedET := whitelistStart.Add(actualExpiry.Sub(truncatedET)).Add(24 * time.Hour)
 
 	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Projected CT = [ %v ] Projected ExpiryTime = [ %v ]", node.Name, projectedCT, projectedET))
-
+	eligibleExpiryTimes := make([]time.Time, 0)
 	for day := 0; day < 2; day++ {
 
 		ss.whiteListIntervals.IntervalsBetween(whitelistStart, whitelistEnd, func(start, end time.Time) bool {
@@ -109,22 +108,26 @@ func (ss *spotterService) getExpiryTimestamp(node v1.Node) string {
 				start = start.Add(24 * time.Hour)
 				end = end.Add(24 * time.Hour)
 			}
-			ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Current Interval Node = %v Day = %d, start = [ %v ], end = [ %v ], saExpirtyTime = [ %v ]", node.Name, day, start, end, saExpirtyTime))
+			ss.logger.Debug(fmt.Sprintf("GetExpiryTime : [Current Interval] Node = %v Day = %d, start = [ %v ], end = [ %v ], elegibleWLIntervals = [ %v ]", node.Name, day, start, end, eligibleExpiryTimes))
 			if projectedCT.Before(start) && end.Before(projectedET) {
 				timeToBeAdded := randomMinuntes(start, end)
-				saExpirtyTime = start.Add(time.Duration(timeToBeAdded) * time.Minute)
+				eligibleExpiryTimes = append(eligibleExpiryTimes, start.Add(time.Duration(timeToBeAdded)*time.Minute))
 
-				ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Eligible Interval Node = %v Day = %d, start = [ %v ], end = [ %v ], saExpirtyTime = [ %v ]", node.Name, day, start, end, saExpirtyTime))
+				ss.logger.Debug(fmt.Sprintf("GetExpiryTime : [Eligible Interval] Node = %v Day = %d, start = [ %v ], end = [ %v ], elegibleWLIntervals = [ %v ]", node.Name, day, start, end, eligibleExpiryTimes))
 			}
 
 			return true
 		})
 
 	}
-	if saExpirtyTime.IsZero() {
+
+	if len(eligibleExpiryTimes) == 0 {
 		panic("Cannot find a date")
 	}
 
+	saExpirtyTime := eligibleExpiryTimes[rand.Intn(len(eligibleExpiryTimes))]
+
+	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v elegibleWLIntervals = %v, saExpirtyTime = [ %v ]", node.Name, eligibleExpiryTimes, saExpirtyTime))
 	finalexp := midnight(creationTsUTC).Add(saExpirtyTime.Sub(whitelistStart))
 
 	if finalexp.After(actualExpiry) {

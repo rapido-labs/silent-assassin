@@ -11,11 +11,14 @@ import (
 )
 
 type ExpiryTestData struct {
-	NodeName      string
-	CreationTime  time.Time
-	TargetWLStart time.Time
-	TargetWLEnd   time.Time
-	WL            []string
+	NodeName     string
+	CreationTime time.Time
+	EligibleWLs  []TimeSpan
+	WL           []string
+}
+type TimeSpan struct {
+	Start time.Time
+	End   time.Time
 }
 
 func parseTime(t string) time.Time {
@@ -23,57 +26,94 @@ func parseTime(t string) time.Time {
 	return r
 }
 
+func verifyNodeExpiry(t time.Time, eligibleWLs []TimeSpan) bool {
+	for _, wl := range eligibleWLs {
+		if (t.After(wl.Start) || t.Equal(wl.Start)) && (t.Before(wl.End) || t.Equal(wl.End)) {
+			return true
+		}
+	}
+	return false
+}
+
 //If the CET (CT+TTL) falls in a WhiteList Interval , it should be used as is
-func (suite *SpotterTestSuite) TestShouldNotUpdateCETWhenCETFallsInWLIntervals() {
+func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRandom() {
 	testData := []ExpiryTestData{
 		{
-			NodeName:      "Node-1",
-			CreationTime:  parseTime("Mon, 22 Jun 2020 10:10:00 +0000"),
-			TargetWLStart: parseTime("Mon, 23 Jun 2020 00:00:00 +0000"),
-			TargetWLEnd:   parseTime("Mon, 23 Jun 2020 06:00:00 +0000"),
-			WL:            []string{"00:00-06:00", "12:00-14:00"},
+			NodeName:     "Node-1",
+			CreationTime: parseTime("Mon, 22 Jun 2020 10:10:00 +0000"),
+			EligibleWLs: []TimeSpan{
+				{
+					Start: parseTime("Mon, 22 Jun 2020 12:00:00 +0000"),
+					End:   parseTime("Mon, 22 Jun 2020 14:00:00 +0000"),
+				},
+				{
+					Start: parseTime("Mon, 23 Jun 2020 00:00:00 +0000"),
+					End:   parseTime("Mon, 23 Jun 2020 06:00:00 +0000"),
+				},
+			},
+			WL: []string{"00:00-06:00", "12:00-14:00"},
 		},
 		{
-			NodeName:      "Node-2",
-			CreationTime:  parseTime("Mon, 22 Jun 2020 15:40:00 +0000"),
-			TargetWLStart: parseTime("Mon, 23 Jun 2020 12:00:00 +0000"),
-			TargetWLEnd:   parseTime("Mon, 23 Jun 2020 14:00:00 +0000"),
-			WL:            []string{"00:00-06:00", "12:00-14:00"},
+			NodeName:     "Node-2",
+			CreationTime: parseTime("Mon, 22 Jun 2020 15:40:00 +0000"),
+
+			EligibleWLs: []TimeSpan{
+				{
+					Start: parseTime("Mon, 23 Jun 2020 00:00:00 +0000"),
+					End:   parseTime("Mon, 23 Jun 2020 06:00:00 +0000"),
+				},
+				{
+					Start: parseTime("Mon, 23 Jun 2020 12:00:00 +0000"),
+					End:   parseTime("Mon, 23 Jun 2020 14:00:00 +0000"),
+				},
+			},
+			WL: []string{"00:00-06:00", "12:00-14:00"},
 		},
 		{
-			NodeName:      "Node-3",
-			CreationTime:  parseTime("Mon, 22 Jun 2020 00:40:00 +0000"),
-			TargetWLStart: parseTime("Mon, 22 Jun 2020 12:00:00 +0000"),
-			TargetWLEnd:   parseTime("Mon, 22 Jun 2020 14:00:00 +0000"),
-			WL:            []string{"00:00-06:00", "12:00-14:00"},
+			NodeName:     "Node-3",
+			CreationTime: parseTime("Mon, 22 Jun 2020 00:40:00 +0000"),
+			EligibleWLs: []TimeSpan{
+				{
+					Start: parseTime("Mon, 22 Jun 2020 12:00:00 +0000"),
+					End:   parseTime("Mon, 22 Jun 2020 14:00:00 +0000"),
+				},
+			},
+			WL: []string{"00:00-06:00", "12:00-14:00"},
 		},
 		{
-			NodeName:      "Node-4",
-			CreationTime:  parseTime("Mon, 22 Jun 2020 22:20:00 +0000"),
-			TargetWLStart: parseTime("Mon, 23 Jun 2020 12:00:00 +0000"),
-			TargetWLEnd:   parseTime("Mon, 23 Jun 2020 14:00:00 +0000"),
-			WL:            []string{"00:00-06:00", "12:00-14:00"},
+			NodeName:     "Node-4",
+			CreationTime: parseTime("Mon, 22 Jun 2020 22:20:00 +0000"),
+			EligibleWLs: []TimeSpan{
+				{
+					Start: parseTime("Mon, 23 Jun 2020 00:00:00 +0000"),
+					End:   parseTime("Mon, 23 Jun 2020 06:00:00 +0000"),
+				},
+				{
+					Start: parseTime("Mon, 23 Jun 2020 12:00:00 +0000"),
+					End:   parseTime("Mon, 23 Jun 2020 14:00:00 +0000"),
+				},
+			},
+			WL: []string{"00:00-06:00", "12:00-14:00"},
 		},
 	}
-	for _, testInput := range testData {
-		suite.configMock.On("GetStringSlice", config.SpotterWhiteListIntervalHours).Return(testInput.WL)
-		creationTimestamp := testInput.CreationTime
 
-		targetWLStart := testInput.TargetWLStart
-		targetWLEnd := testInput.TargetWLEnd
+	suite.configMock.On("GetStringSlice", config.SpotterWhiteListIntervalHours).Return([]string{"00:00-06:00", "12:00-14:00"})
+	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock)
+	ss.initWhitelist()
+
+	for _, testInput := range testData {
+
+		creationTimestamp := testInput.CreationTime
 
 		nodeToBeAnnotated := v1.Node{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:              "Node-2",
+				Name:              testInput.NodeName,
 				CreationTimestamp: metav1.NewTime(creationTimestamp),
 				Annotations:       map[string]string{"node.alpha.kubernetes.io/ttl": "0"}}}
 
-		ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock)
-		ss.initWhitelist()
 		saExpTime, _ := time.Parse(time.RFC1123Z, ss.getExpiryTimestamp(nodeToBeAnnotated))
 
-		assert.True(suite.T(), saExpTime.After(targetWLStart) || saExpTime.Equal(targetWLStart), fmt.Sprintf("SA_Expiry time =[ %v ] must be After or Equal to the Start of target WL interval = [ %v ] for Node = %v", saExpTime, targetWLStart, testInput.NodeName))
-		assert.True(suite.T(), saExpTime.Before(targetWLEnd) || saExpTime.Equal(targetWLEnd), fmt.Sprintf("SA_Expiry time =[ %v ] must be Before or Equal to the End of target WL interval = [ %v ] for Node = %v", saExpTime, targetWLEnd, testInput.NodeName))
+		assert.True(suite.T(), verifyNodeExpiry(saExpTime, testInput.EligibleWLs), fmt.Sprintf("SA_Expiry time =[ %v ] didn't fall within one of the eligible WL interval = [ %v ] for Node = %v", saExpTime, testInput.EligibleWLs, testInput.NodeName))
 	}
 }
 
@@ -92,6 +132,6 @@ func (suite *SpotterTestSuite) TestRandomMins() {
 	t2, _ := time.Parse(time.RFC1123Z, "Mon, 22 Jun 2020 09:45:00 +0000")
 
 	randMins := randomMinuntes(t1, t2)
-	assert.True(suite.T(), randMins > 0*time.Minute)
-	assert.True(suite.T(), randMins < 45*time.Minute)
+	assert.True(suite.T(), randMins >= 0*time.Minute, fmt.Sprintf("randMins must be >=0 but is: %d ", randMins))
+	assert.True(suite.T(), randMins <= 45*time.Minute, fmt.Sprintf("randMins must be <= 45 but is: %d ", randMins))
 }
