@@ -133,6 +133,7 @@ func (ss *spotterService) getExpiryTimestamp(node v1.Node) string {
 	if finalexp.After(actualExpiry) {
 		panic("The Expiry time we calculated is after Actual Expiry Time :facepalm")
 	}
+	finalexp = finalexp.In(node.GetCreationTimestamp().Time.Location())
 	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Final Expiry = [ %v ]", node.Name, finalexp))
 	return finalexp.Format(time.RFC1123Z)
 }
