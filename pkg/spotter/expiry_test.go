@@ -14,7 +14,6 @@ type ExpiryTestData struct {
 	NodeName     string
 	CreationTime time.Time
 	EligibleWLs  []TimeSpan
-	WL           []string
 }
 type TimeSpan struct {
 	Start time.Time
@@ -51,7 +50,6 @@ func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRando
 					End:   parseTime("Mon, 23 Jun 2020 06:00:00 +0000"),
 				},
 			},
-			WL: []string{"00:00-06:00", "12:00-14:00"},
 		},
 		{
 			NodeName:     "Node-2",
@@ -67,7 +65,6 @@ func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRando
 					End:   parseTime("Mon, 23 Jun 2020 14:00:00 +0000"),
 				},
 			},
-			WL: []string{"00:00-06:00", "12:00-14:00"},
 		},
 		{
 			NodeName:     "Node-3",
@@ -78,7 +75,6 @@ func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRando
 					End:   parseTime("Mon, 22 Jun 2020 14:00:00 +0000"),
 				},
 			},
-			WL: []string{"00:00-06:00", "12:00-14:00"},
 		},
 		{
 			NodeName:     "Node-4",
@@ -93,7 +89,6 @@ func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRando
 					End:   parseTime("Mon, 23 Jun 2020 14:00:00 +0000"),
 				},
 			},
-			WL: []string{"00:00-06:00", "12:00-14:00"},
 		},
 	}
 
@@ -115,6 +110,24 @@ func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRando
 
 		assert.True(suite.T(), verifyNodeExpiry(saExpTime, testInput.EligibleWLs), fmt.Sprintf("SA_Expiry time =[ %v ] didn't fall within one of the eligible WL interval = [ %v ] for Node = %v", saExpTime, testInput.EligibleWLs, testInput.NodeName))
 	}
+}
+
+func (suite *SpotterTestSuite) TestShouldReturnETinSameTimeZoneAsCT() {
+
+	suite.configMock.On("GetStringSlice", config.SpotterWhiteListIntervalHours).Return([]string{"00:00-06:00", "12:00-14:00"})
+	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock)
+	ss.initWhitelist()
+	creationTime := parseTime("Mon, 22 Jun 2020 22:20:00 +0530")
+	nodeToBeAnnotated := v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "Node-IST",
+			CreationTimestamp: metav1.NewTime(creationTime),
+			Annotations:       map[string]string{"node.alpha.kubernetes.io/ttl": "0"}}}
+
+	saExpTime, _ := time.Parse(time.RFC1123Z, ss.getExpiryTimestamp(nodeToBeAnnotated))
+
+	assert.True(suite.T(), saExpTime.Location() == creationTime.Location(), "CT and ET TimeZone does not match")
+
 }
 
 func (suite *SpotterTestSuite) TestRandomNumber() {
