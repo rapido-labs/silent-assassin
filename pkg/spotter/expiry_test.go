@@ -36,7 +36,7 @@ func verifyNodeExpiry(t time.Time, eligibleWLs []TimeSpan) bool {
 }
 
 //If the CET (CT+TTL) falls in a WhiteList Interval , it should be used as is
-func (suite *SpotterTestSuite) TestShouldNotUpdateCETWhenCETFallsInWLIntervals() {
+func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRandom() {
 	testData := []ExpiryTestData{
 		{
 			NodeName:     "Node-1",
