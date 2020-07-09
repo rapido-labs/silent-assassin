@@ -11,6 +11,7 @@ import (
 	"github.com/roppenlabs/silent-assassin/pkg/gcloud"
 	"github.com/roppenlabs/silent-assassin/pkg/k8s"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
+	"github.com/roppenlabs/silent-assassin/pkg/notifier"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -19,14 +20,16 @@ type killerService struct {
 	logger       logger.IZapLogger
 	kubeClient   k8s.IKubernetesClient
 	gcloudClient gcloud.IGCloudClient
+	notifier     notifier.Notifier
 }
 
-func NewKillerService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, gc gcloud.IGCloudClient) killerService {
+func NewKillerService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, gc gcloud.IGCloudClient, nf notifier.Notifier) killerService {
 	return killerService{
 		cp:           cp,
 		logger:       zl,
 		kubeClient:   kc,
 		gcloudClient: gc,
+		notifier:     nf,
 	}
 }
 
@@ -151,7 +154,6 @@ func (ks killerService) waitforDrainToFinish(nodeName string, timeout int) error
 //startDrainNode will delete the pods running on the node passed
 //in the arugment.
 func (ks killerService) startDrainNode(nodeName string) error {
-
 	filteredPodList, err := ks.getPodsToBeDeleted(nodeName)
 	if err != nil {
 		return err
@@ -186,8 +188,8 @@ func (ks killerService) kill() {
 	nodesToDelete := ks.findExpiredTimeNodes(ks.cp.GetStringSlice(config.SpotterNodeSelectors))
 
 	ks.logger.Debug(fmt.Sprintf("Number of nodes to kill %d", len(nodesToDelete)))
-
 	for _, node := range nodesToDelete {
+
 		ks.logger.Info(fmt.Sprintf("Processing node %s", node.Name))
 
 		//Cordone the node. This will make this node unschedulable for new pods.
@@ -198,35 +200,53 @@ func (ks killerService) kill() {
 		ks.logger.Info(fmt.Sprintf("Cordoned node %s", node.Name))
 
 		// Drain the node,
-		//Supply drain timeout from configuration
+		if err := ks.notifier.DrainNode(node); err != nil {
+			ks.logger.Error(fmt.Sprintf("failed to send notification: %s", err.Error()))
+		}
 		if err := ks.startDrainNode(node.Name); err != nil {
 			ks.logger.Error(fmt.Sprintf("Failed to drain the node %s, %s", node.Name, err.Error()))
+			if err := ks.notifier.FailedToDrainNode(node, err); err != nil {
+				ks.logger.Error(fmt.Sprintf("failed to send notification: %s", err.Error()))
+			}
 			continue
 		}
 
 		//Wait for the pods to get evicted.
 		drainingTimeout := ks.cp.GetInt(config.KillerDrainingTimeoutMs)
+
 		if err := ks.waitforDrainToFinish(node.Name, drainingTimeout); err != nil {
 			ks.logger.Error(fmt.Sprintf("Error while waiting for drain on node %s, %s", node.Name, err.Error()))
+			if err := ks.notifier.DrainNodeTimeout(node); err != nil {
+				ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
+			}
 			continue
 		}
 		ks.logger.Info(fmt.Sprintf("Successfully drained the node %s", node.Name))
 
 		// Delete the k8s node
 		ks.logger.Info(fmt.Sprintf("Deleting node %s", node.Name))
+		if err := ks.notifier.DeleteNode(node); err != nil {
+			ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
+		}
 		if err := ks.kubeClient.DeleteNode(node.Name); err != nil {
 			ks.logger.Info(fmt.Sprintf("Error deleting the node %s", node.Name))
+			if err := ks.notifier.FailedToDeleteNode(node, err); err != nil {
+				ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
+			}
 			continue
 		}
 
-		projectID, zone := getProjectIDAndZoneFromNode(node)
-
 		// Delete gcloud instance.
+		projectID, zone := getProjectIDAndZoneFromNode(node)
 		ks.logger.Info(fmt.Sprintf("Deletig google instance %s", node.Name))
+		if err := ks.notifier.DeleteInstance(node); err != nil {
+			ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
+		}
 		if err := ks.gcloudClient.DeleteNode(projectID, zone, node.Name); err != nil {
-
 			ks.logger.Error(fmt.Sprintf("Could not kill the node %s", node.Name))
-
+			if err := ks.notifier.FailedToDeleteInstance(node, err); err != nil {
+				ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
+			}
 		}
 	}
 }

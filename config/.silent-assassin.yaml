@@ -16,3 +16,9 @@ LOGGER:
 
 KUBERNETES:
   RUN_MODE: OutCluster # InCluster | OutCluster
+
+SLACK:
+  WEBHOOK_URL: "https://hooks.slack.com/services/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"
+  USERNAME: "SILENT ASSASSIN"
+  CHANNEL: "test-slack-to-be-deleted-soon"
+  SLACK_ICON_URL: "https://avatars.slack-edge.com/2019-11-12/831618011008_5c3d2e53846f843edc54_512.png"
