@@ -13,6 +13,11 @@ type Notifier struct {
 	messageClient MessageClient
 }
 
+type INotifier interface {
+	Info(event, details string) error
+	Error(event, details string) error
+}
+
 // MessageClient is a Messaging interface
 type MessageClient interface {
 	push(severity severity, title, details string) error
