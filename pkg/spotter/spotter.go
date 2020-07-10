@@ -10,6 +10,7 @@ import (
 	"github.com/roppenlabs/silent-assassin/pkg/config"
 	"github.com/roppenlabs/silent-assassin/pkg/k8s"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
+	"github.com/roppenlabs/silent-assassin/pkg/notifier"
 )
 
 type spotterService struct {
@@ -17,13 +18,15 @@ type spotterService struct {
 	logger             logger.IZapLogger
 	kubeClient         k8s.IKubernetesClient
 	whiteListIntervals *timespanset.Set
+	notifier           notifier.Notifier
 }
 
-func NewSpotterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient) spotterService {
+func NewSpotterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, nf notifier.Notifier) spotterService {
 	return spotterService{
 		cp:         cp,
 		logger:     zl,
 		kubeClient: kc,
+		notifier:   nf,
 	}
 }
 
@@ -67,11 +70,21 @@ func (ss spotterService) spot() {
 
 		node.SetAnnotations(nodeAnnotations)
 		err := ss.kubeClient.AnnotateNode(node)
+		nodeDetail := fmt.Sprintf("Node: %s\nCreation Time: %s\nExpiryTime: %s", node.Name, node.CreationTimestamp, node.Annotations[config.SpotterExpiryTimeAnnotation])
+
 		if err != nil {
 			ss.logger.Error(fmt.Sprintf("Failed to annotate node : %s", node.ObjectMeta.Name))
-			panic(err)
+			if err := ss.notifier.Error("ANNOTATE", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error())); err != nil {
+				ss.logger.Error(fmt.Sprintf("Error sending notification: %s", err.Error()))
+			}
+			continue
 		}
 		ss.logger.Info(fmt.Sprintf("Annotated node : %s", node.ObjectMeta.Name))
+
+		if err := ss.notifier.Info("ANNOTATE", nodeDetail); err != nil {
+			ss.logger.Error(fmt.Sprintf("Error sending notification: %s", err.Error()))
+		}
+
 	}
 
 }
