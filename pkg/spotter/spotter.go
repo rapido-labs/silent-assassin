@@ -18,10 +18,10 @@ type spotterService struct {
 	logger             logger.IZapLogger
 	kubeClient         k8s.IKubernetesClient
 	whiteListIntervals *timespanset.Set
-	notifier           notifier.Notifier
+	notifier           notifier.INotifier
 }
 
-func NewSpotterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, nf notifier.Notifier) spotterService {
+func NewSpotterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, nf notifier.INotifier) spotterService {
 	return spotterService{
 		cp:         cp,
 		logger:     zl,

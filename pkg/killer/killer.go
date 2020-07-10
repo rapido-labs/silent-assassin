@@ -20,10 +20,10 @@ type killerService struct {
 	logger       logger.IZapLogger
 	kubeClient   k8s.IKubernetesClient
 	gcloudClient gcloud.IGCloudClient
-	notifier     notifier.Notifier
+	notifier     notifier.INotifier
 }
 
-func NewKillerService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, gc gcloud.IGCloudClient, nf notifier.Notifier) killerService {
+func NewKillerService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, gc gcloud.IGCloudClient, nf notifier.INotifier) killerService {
 	return killerService{
 		cp:           cp,
 		logger:       zl,
