@@ -22,14 +22,16 @@ type KillerTypeSuite struct {
 	gCloudMock   *gcloud.GCloudClientMock
 	configMock   *config.ProviderMock
 	logger       logger.IZapLogger
-	notifierMock *notifier.NotifierMock
+	notifierMock *notifier.NotifierClientMock
 }
 
 func (k *KillerTypeSuite) SetupTest() {
 	k.configMock = new(config.ProviderMock)
 	k.k8sMock = new(k8s.K8sClientMock)
 	k.gCloudMock = new(gcloud.GCloudClientMock)
-	k.notifierMock = new(notifier.NotifierMock)
+	k.notifierMock = new(notifier.NotifierClientMock)
+	k.notifierMock.On("Info", mock.Anything, mock.Anything)
+	k.notifierMock.On("Error", mock.Anything, mock.Anything)
 	k.configMock.On("GetString", mock.Anything).Return("debug")
 	k.configMock.On("GetStringSlice", "spotter.label_selectors").Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
 	k.logger = logger.Init(k.configMock)
@@ -88,8 +90,7 @@ func (k *KillerTypeSuite) TestShouldWaitforDrainingOfnodesWithTimeout() {
 	ks := NewKillerService(k.configMock, k.logger, k.k8sMock, k.gCloudMock, k.notifierMock)
 	assert.Nil(k.T(), ks.waitforDrainToFinish(nodeName, 5000), "err should be nothing")
 
-	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1}, nil).After(1000 * time.Millisecond).Once()
-	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{}, nil).After(1000 * time.Millisecond).Once()
+	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1}, nil).After(2000 * time.Millisecond).Once()
 
 	assert.NotNil(k.T(), ks.waitforDrainToFinish(nodeName, 1000), "error should be something")
 	k.k8sMock.AssertExpectations(k.T())
