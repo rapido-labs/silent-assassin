@@ -4,19 +4,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alecthomas/assert"
 	"github.com/roppenlabs/silent-assassin/pkg/config"
 	"github.com/roppenlabs/silent-assassin/pkg/gcloud"
 	"github.com/roppenlabs/silent-assassin/pkg/k8s"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
 	"github.com/roppenlabs/silent-assassin/pkg/notifier"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type KillerTypeSuite struct {
+type KillerTestSuite struct {
 	suite.Suite
 	k8sMock      *k8s.K8sClientMock
 	gCloudMock   *gcloud.GCloudClientMock
@@ -25,7 +25,7 @@ type KillerTypeSuite struct {
 	notifierMock *notifier.NotifierClientMock
 }
 
-func (k *KillerTypeSuite) SetupTest() {
+func (k *KillerTestSuite) SetupTest() {
 	k.configMock = new(config.ProviderMock)
 	k.k8sMock = new(k8s.K8sClientMock)
 	k.gCloudMock = new(gcloud.GCloudClientMock)
@@ -36,7 +36,7 @@ func (k *KillerTypeSuite) SetupTest() {
 	k.configMock.On("GetStringSlice", "spotter.label_selectors").Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
 	k.logger = logger.Init(k.configMock)
 }
-func (k *KillerTypeSuite) TestShouldReturnExpiredNodes() {
+func (k *KillerTestSuite) TestShouldReturnExpiredNodes() {
 	preemptibleNodeExpired := v1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "Node-1",
@@ -51,14 +51,15 @@ func (k *KillerTypeSuite) TestShouldReturnExpiredNodes() {
 	k.k8sMock.On("GetNodes", []string{"cloud.google.com/gke-preemptible=true,label2=test"}).Return(&nodeList)
 
 	ks := NewKillerService(k.configMock, k.logger, k.k8sMock, k.gCloudMock, k.notifierMock)
-	ks.findExpiredTimeNodes([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
 
-	assert.Contains(k.T(), ks.findExpiredTimeNodes([]string{"cloud.google.com/gke-preemptible=true,label2=test"}), preemptibleNodeExpired, "Node-1 should be returned")
-	assert.NotContains(k.T(), ks.findExpiredTimeNodes([]string{"cloud.google.com/gke-preemptible=true,label2=test"}), preemptibleNodeNotExpired, "Node-2 should not be returned")
+	nodelist := ks.findExpiredTimeNodes([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
+
+	assert.Contains(k.T(), nodelist, preemptibleNodeExpired, "Node-1 should be returned")
+	assert.NotContains(k.T(), nodelist, preemptibleNodeNotExpired, "Node-2 should not be returned")
 	k.k8sMock.AssertExpectations(k.T())
 }
 
-func (k *KillerTypeSuite) TestShouldFilterPodsByReferenceKind() {
+func (k *KillerTestSuite) TestShouldFilterPodsByReferenceKind() {
 	podOwnedByDS := v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			OwnerReferences: []metav1.OwnerReference{
@@ -74,7 +75,7 @@ func (k *KillerTypeSuite) TestShouldFilterPodsByReferenceKind() {
 	assert.NotContains(k.T(), filteredPodList, podOwnedByDS)
 }
 
-func (k *KillerTypeSuite) TestShouldWaitforDrainingOfnodesWithTimeout() {
+func (k *KillerTestSuite) TestShouldWaitforDrainingOfnodesWithTimeout() {
 	nodeName := "node-1"
 	pod1 := v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod-1", OwnerReferences: []metav1.OwnerReference{{Kind: "ReplicaSet"}}}}
 	pod2 := v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod-2"}}
@@ -97,5 +98,5 @@ func (k *KillerTypeSuite) TestShouldWaitforDrainingOfnodesWithTimeout() {
 }
 
 func TestKillerTestSuite(t *testing.T) {
-	suite.Run(t, new(KillerTypeSuite))
+	suite.Run(t, new(KillerTestSuite))
 }
