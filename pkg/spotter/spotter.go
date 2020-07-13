@@ -50,8 +50,7 @@ func (ss spotterService) Start(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 func (ss spotterService) spot() {
-
-	nodes := ss.kubeClient.GetNodes(ss.cp.GetStringSlice(config.SpotterNodeSelectors))
+	nodes := ss.kubeClient.GetNodes(ss.cp.GetSliceByString(config.SpotterNodeSelectors, ","))
 
 	ss.logger.Debug(fmt.Sprintf("Fetched %d node(s)", len(nodes.Items)))
 

@@ -185,7 +185,7 @@ func getProjectIDAndZoneFromNode(node v1.Node) (string, string) {
 
 func (ks killerService) kill() {
 
-	nodesToDelete := ks.findExpiredTimeNodes(ks.cp.GetStringSlice(config.SpotterNodeSelectors))
+	nodesToDelete := ks.findExpiredTimeNodes(ks.cp.GetSliceByString(config.SpotterNodeSelectors, ","))
 
 	ks.logger.Debug(fmt.Sprintf("Number of nodes to kill %d", len(nodesToDelete)))
 	for _, node := range nodesToDelete {

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -28,6 +29,7 @@ type IProvider interface {
 	GetStringMapString(key string) map[string]string
 	GetStringMapStringSlice(key string) map[string][]string
 	GetSizeInBytes(key string) uint
+	GetSliceByString(key string, sep string) []string
 }
 
 var fetcher Provider
@@ -100,4 +102,9 @@ func (f *Provider) GetStringMapStringSlice(key string) map[string][]string {
 }
 func (f *Provider) GetSizeInBytes(key string) uint {
 	return f.Viper.GetSizeInBytes(key)
+}
+
+func (f *Provider) GetSliceByString(key string, sep string) []string {
+	str := f.Viper.GetString(key)
+	return strings.Split(str, sep)
 }
