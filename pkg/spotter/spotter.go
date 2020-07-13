@@ -18,10 +18,10 @@ type spotterService struct {
 	logger             logger.IZapLogger
 	kubeClient         k8s.IKubernetesClient
 	whiteListIntervals *timespanset.Set
-	notifier           notifier.INotifier
+	notifier           notifier.INotifierClient
 }
 
-func NewSpotterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, nf notifier.INotifier) spotterService {
+func NewSpotterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, nf notifier.INotifierClient) spotterService {
 	return spotterService{
 		cp:         cp,
 		logger:     zl,
@@ -74,16 +74,12 @@ func (ss spotterService) spot() {
 
 		if err != nil {
 			ss.logger.Error(fmt.Sprintf("Failed to annotate node : %s", node.ObjectMeta.Name))
-			if err := ss.notifier.Error("ANNOTATE", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error())); err != nil {
-				ss.logger.Error(fmt.Sprintf("Error sending notification: %s", err.Error()))
-			}
+			ss.notifier.Error("ANNOTATE", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error()))
 			continue
 		}
 		ss.logger.Info(fmt.Sprintf("Annotated node : %s", node.ObjectMeta.Name))
 
-		if err := ss.notifier.Info("ANNOTATE", nodeDetail); err != nil {
-			ss.logger.Error(fmt.Sprintf("Error sending notification: %s", err.Error()))
-		}
+		ss.notifier.Info("ANNOTATE", nodeDetail)
 
 	}
 
