@@ -1,0 +1,8 @@
+environment: production
+
+resources:
+  enabled: true
+
+workloadIdentityServiceAccount:
+  enabled: true
+  name: "silent-assassin@production-backend-12358.iam.gserviceaccount.com"
