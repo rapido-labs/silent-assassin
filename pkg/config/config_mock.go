@@ -80,7 +80,7 @@ func (f *ProviderMock) GetSizeInBytes(key string) uint {
 	return args.Get(0).(uint)
 }
 
-func (f *ProviderMock) GetSliceByString(key string, sep string) []string {
+func (f *ProviderMock) SplitStringToSlice(key string, sep string) []string {
 	args := f.Called(key, sep)
 	return args.Get(0).([]string)
 }

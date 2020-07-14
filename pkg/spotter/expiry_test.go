@@ -92,7 +92,7 @@ func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRando
 		},
 	}
 
-	suite.configMock.On("GetSliceByString", config.SpotterWhiteListIntervalHours, ",").Return([]string{"00:00-06:00", "12:00-14:00"})
+	suite.configMock.On("SplitStringToSlice", config.SpotterWhiteListIntervalHours, config.CommaSeparater).Return([]string{"00:00-06:00", "12:00-14:00"})
 	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock, suite.notifierMock)
 	ss.initWhitelist()
 
@@ -114,7 +114,7 @@ func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRando
 
 func (suite *SpotterTestSuite) TestShouldReturnETinSameTimeZoneAsCT() {
 
-	suite.configMock.On("GetSliceByString", config.SpotterWhiteListIntervalHours, ",").Return([]string{"00:00-06:00", "12:00-14:00"})
+	suite.configMock.On("SplitStringToSlice", config.SpotterWhiteListIntervalHours, config.CommaSeparater).Return([]string{"00:00-06:00", "12:00-14:00"})
 	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock, suite.notifierMock)
 	ss.initWhitelist()
 	creationTime := parseTime("Mon, 22 Jun 2020 22:20:00 +0530")
