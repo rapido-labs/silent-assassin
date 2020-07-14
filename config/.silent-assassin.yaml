@@ -1,20 +1,20 @@
 SPOTTER:
-  POLL_INTERVAL_MS: 1000
-  LABEL_SELECTORS: "cloud.google.com/gke-preemptible=true,cloud.google.com/gke-preemptible=true"
-  WHITE_LIST_INTERVAL_HOURS: "06:30-08:30,18:30-00:30"
+  POLL_INTERVAL_MS: {{key "rapido/silent-assassin/svc/spotter.poll_interval_ms"}}
+  LABEL_SELECTORS: {{key "rapido/silent-assassin/svc/spotter.label-selectors"}}
+  WHITE_LIST_INTERVAL_HOURS: {{key "rapido/silent-assassin/svc/spotter.white_list_interval_hours"}}
 
 KILLER:
-  POLL_INTERVAL_MS: 1000
-  DRAINING_TIMEOUT_MS: 300000
+  POLL_INTERVAL_MS: {{key "rapido/silent-assassin/svc/killer_poll_interval_ms"}}
+  DRAINING_TIMEOUT_MS: {{key "rapido/silent-assassin/svc/killer_draining_timeout_ms"}}
 
 LOGGER:
-  LEVEL: debug # debug | info | warn | error
+  LEVEL: {{key "rapido/silent-assassin/svc/logger_level"}} # debug | info | warn | error
 
 KUBERNETES:
-  RUN_MODE: OutCluster # InCluster | OutCluster
+  RUN_MODE: {{key "rapido/silent-assassin/svc/kubernetes_run_mode"}} # InCluster | OutCluster
 
 SLACK:
-  WEBHOOK_URL: "https://hooks.slack.com/services/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"
-  USERNAME: "SILENT ASSASSIN"
-  CHANNEL: "test-slack-to-be-deleted-soon"
-  SLACK_ICON_URL: "https://avatars.slack-edge.com/2019-11-12/831618011008_5c3d2e53846f843edc54_512.png"
+  WEBHOOK_URL: {{key "rapido/silent-assassin/svc/slack_webhook_url"}}
+  USERNAME: {{key "rapido/silent-assassin/svc/slack_username"}}
+  CHANNEL: {{key "rapido/silent-assassin/svc/slack_channel"}}
+  SLACK_ICON_URL: {{key "rapido/silent-assassin/svc/slack_slack_icon_url"}}
