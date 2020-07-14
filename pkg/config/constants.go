@@ -17,3 +17,5 @@ const SlackWebhookURL = "slack.webhook_url"
 const SlackUsername = "slack.username"
 const SlackChannel = "slack.channel"
 const SlackIconURL = "slack.slack_icon_url"
+
+const CommaSeparater = ","

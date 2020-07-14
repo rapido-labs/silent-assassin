@@ -47,7 +47,7 @@ func init() {
 
 func (ss *spotterService) initWhitelist() {
 	ss.whiteListIntervals = timespanset.Empty()
-	wlStr := ss.cp.GetStringSlice(config.SpotterWhiteListIntervalHours)
+	wlStr := ss.cp.SplitStringToSlice(config.SpotterWhiteListIntervalHours, config.CommaSeparater)
 	for _, wl := range wlStr {
 		times := strings.Split(wl, "-")
 		start, err := time.Parse(time.RFC3339, whitelistStartPrefix+times[0]+whitelistTimePostfix)
