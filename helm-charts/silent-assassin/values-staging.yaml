@@ -1,0 +1,18 @@
+environment: staging
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: cloud.google.com/gke-nodepool
+          operator: In
+          values:
+          - services-2
+
+resources:
+  enabled: false
+
+workloadIdentityServiceAccount:
+  enabled: true
+  name: "silent-assassin@staging-backend-12358.iam.gserviceaccount.com"

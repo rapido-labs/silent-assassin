@@ -1,0 +1,29 @@
+format_version: 5
+pipelines:
+  silent-assassin-dev:
+    group: devops
+    materials:
+      repo:
+        git: git@github.com:roppenlabs/silent-assassin.git
+        branch: develop
+    template: go-skaffold
+    parameters:
+      environment: development
+  silent-assassin-staging:
+    group: devops
+    materials:
+      repo:
+        git: git@github.com:roppenlabs/silent-assassin.git
+        branch: release
+    template: go-skaffold
+    parameters:
+      environment: staging
+  silent-assassin-production:
+    group: devops
+    materials:
+      repo:
+        git: git@github.com:roppenlabs/silent-assassin.git
+        branch: master
+    template: go-skaffold
+    parameters:
+      environment: production

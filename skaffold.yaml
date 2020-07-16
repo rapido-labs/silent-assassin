@@ -1,0 +1,72 @@
+apiVersion: skaffold/v2beta5
+kind: Config
+build:
+  artifacts:
+    - image: asia.gcr.io/staging-host-12358/silent-assassin
+      buildpacks:
+        builder: "asia.gcr.io/staging-host-12358/golang-builder:alpine-1.14.2"
+        env:
+        - APP_NAME=silent-assassin
+        - APP_VERSION=1.0.0
+  local:
+    push: true
+    useDockerCLI: true
+  tagPolicy:
+    gitCommit:
+      variant: AbbrevCommitSha
+profiles:
+- name: local
+  build:
+    local:
+      push: false
+    artifacts:
+    - image: silent-assassin
+      buildpacks:
+        builder: "asia.gcr.io/staging-host-12358/golang-builder:alpine-1.14.2"
+        env:
+        - APP_NAME=silent-assassin
+        - APP_VERSION=1.0.0
+- name: development
+  deploy:
+    statusCheckDeadlineSeconds: 300
+    helm:
+      releases:
+      - name: silent-assassin
+        namespace: andromeda
+        chartPath: ./helm-charts/silent-assassin
+        valuesFiles:
+          - ./helm-charts/silent-assassin/values-development.yaml
+        artifactOverrides:
+          image: asia.gcr.io/staging-host-12358/silent-assassin
+- name: staging
+  deploy:
+    statusCheckDeadlineSeconds: 300
+    helm:
+      releases:
+      - name: silent-assassin
+        namespace: andromeda
+        chartPath: ./helm-charts/silent-assassin
+        valuesFiles:
+          - ./helm-charts/silent-assassin/values-staging.yaml
+        artifactOverrides:
+          image: asia.gcr.io/staging-host-12358/silent-assassin
+- name: production
+  build:
+    artifacts:
+    - image: asia.gcr.io/production-host-12358/silent-assassin
+      buildpacks:
+        builder: "asia.gcr.io/staging-host-12358/golang-builder:alpine-1.14.2"
+        env:
+        - APP_NAME=silent-assassin
+        - APP_VERSION=1.0.0
+  deploy:
+    statusCheckDeadlineSeconds: 300
+    helm:
+      releases:
+      - name: silent-assassin
+        namespace: andromeda
+        chartPath: ./helm-charts/silent-assassin
+        valuesFiles:
+          - ./helm-charts/silent-assassin/values-production.yaml
+        artifactOverrides:
+          image: asia.gcr.io/production-host-12358/silent-assassin
