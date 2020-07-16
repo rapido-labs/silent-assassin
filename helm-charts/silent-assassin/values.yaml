@@ -7,13 +7,13 @@ containerPort: 8080
 environment: development
 team: devops
 imageConfig:
-  pullPolicy: Always 
+  pullPolicy: Always
 
 resources:
   enabled: true
   requests:
-    cpu: 1
-    memory: 1024Mi
+    cpu: 200m
+    memory: 200Mi
   limits:
     cpu: 2
     memory: 2048Mi
