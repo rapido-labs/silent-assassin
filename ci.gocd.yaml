@@ -18,3 +18,12 @@ pipelines:
     template: go-skaffold
     parameters:
       environment: staging
+  silent-assassin-production:
+    group: devops
+    materials:
+      repo:
+        git: git@github.com:roppenlabs/silent-assassin.git
+        branch: master
+    template: go-skaffold
+    parameters:
+      environment: production
