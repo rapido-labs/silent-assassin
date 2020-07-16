@@ -11,7 +11,7 @@ affinity:
           - services-2
 
 resources:
-  enabled: true
+  enabled: false
 
 workloadIdentityServiceAccount:
   enabled: true
