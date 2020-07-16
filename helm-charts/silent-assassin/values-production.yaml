@@ -1,7 +1,18 @@
 environment: production
 
-resources:
-  enabled: true
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: component
+          operator: In
+          values:
+          - "admin"
+        - key: active
+          operator: In
+          values:
+          - "true"
 
 workloadIdentityServiceAccount:
   enabled: true
