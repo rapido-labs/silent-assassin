@@ -29,8 +29,9 @@ $ gcloud projects add-iam-policy-binding $project_id \
     --member=serviceAccount:${service_account_email} \
     --role=projects/${project_id}/roles/computeInstanceDelete
 
+#Below step can only be executed when the service account in created in GKE.
 export namespace=<namespace_of_k8s_service_account>
-$ gcloud iam service-accounts add-iam-policy-binding   --role roles/iam.workloadIdentityUser   --member serviceAccount:development-backend-12358.svc.id.goog[$namespace/silent-assassin] silent-assassin
+$ gcloud iam service-accounts add-iam-policy-binding   --role roles/iam.workloadIdentityUser   --member serviceAccount:${project_id}.svc.id.goog[${namespace}/silent-assassin] silent-assassin
 ```
 
 ## Migrate node-pool to use Workload Identity(WI)
