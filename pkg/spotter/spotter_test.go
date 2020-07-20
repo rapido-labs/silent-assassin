@@ -21,13 +21,15 @@ type SpotterTestSuite struct {
 	k8sMock      *k8s.K8sClientMock
 	configMock   *config.ProviderMock
 	logger       logger.IZapLogger
-	notifierMock *notifier.NotifierMock
+	notifierMock *notifier.NotifierClientMock
 }
 
 func (s *SpotterTestSuite) SetupTest() {
 	s.configMock = new(config.ProviderMock)
 	s.k8sMock = new(k8s.K8sClientMock)
-	s.notifierMock = new(notifier.NotifierMock)
+	s.notifierMock = new(notifier.NotifierClientMock)
+	s.notifierMock.On("Info", mock.Anything, mock.Anything)
+	s.notifierMock.On("Error", mock.Anything, mock.Anything)
 	s.configMock.On("GetString", mock.Anything).Return("debug")
 	s.configMock.On("GetInt", "spotter.poll_interval_ms").Return(10)
 	s.configMock.On("SplitStringToSlice", "spotter.label_selectors", config.CommaSeparater).Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
