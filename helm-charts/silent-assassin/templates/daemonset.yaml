@@ -45,8 +45,8 @@ spec:
       containers:
         - name: {{ .Release.Name }}
           image: {{ .Values.image }}
-          command: ["/layers/golang/app/silent-assassin"]
-          args: ["startClient"]
+          command: ["/bin/sh"]
+          args: ["-c", "cd /layers/golang/app/; ./silent-assassin startClient"]
           imagePullPolicy: {{ .Values.imageConfig.pullPolicy }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:

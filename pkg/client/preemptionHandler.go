@@ -108,6 +108,7 @@ func (pns *PreemptionNotifierService) reuestGracefullDeleteionOfPods(nodeName st
 
 func (pns *PreemptionNotifierService) Start(ctx context.Context, wg *sync.WaitGroup) {
 	nodeName, err := pns.metadata.InstanceName()
+	pns.logger.Info(fmt.Sprintf("Nodename is %s", nodeName))
 	if err != nil {
 		pns.logger.Error("Failed to fetch nodeName from metadata server")
 		panic(err.Error())
