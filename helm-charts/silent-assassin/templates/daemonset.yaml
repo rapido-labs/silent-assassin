@@ -1,4 +1,4 @@
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: {{ .Release.Name }}-client
@@ -103,7 +103,7 @@ spec:
             secretName: {{ .Release.Name }}
         {{- end }}
       nodeSelector:
-        "cloud.google.com/gke-preemptible": true
+        "cloud.google.com/gke-preemptible": "true"
       tolerations:
       # this toleration is to have the daemonset runnable on master nodes
       # remove it if your masters can't run pods
