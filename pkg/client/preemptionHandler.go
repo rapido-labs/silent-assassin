@@ -33,9 +33,10 @@ type PreemptionNotifierService struct {
 }
 
 //NewPreemptionHandler creates an instance of preemption
-func NewPreemptionNotificationService(logger logger.IZapLogger, cp config.IProvider) PreemptionNotifierService {
+func NewPreemptionNotificationService(logger logger.IZapLogger, cp config.IProvider) *PreemptionNotifierService {
 	httpClient := http.DefaultClient
-	return PreemptionNotifierService{
+	return &PreemptionNotifierService{
+		logger:             logger,
 		pendingTermination: make(chan bool),
 		metadata:           metadataclient.Mclient{},
 		httpClient:         httpClient,
@@ -109,7 +110,7 @@ func (pns *PreemptionNotifierService) reuestGracefullDeleteionOfPods(nodeName st
 func (pns *PreemptionNotifierService) Start(ctx context.Context, wg *sync.WaitGroup) {
 	nodeName, err := pns.metadata.InstanceName()
 	if err != nil {
-		pns.logger.Error("Failed to fetch nodeName from metadata server")
+		pns.logger.Error(fmt.Sprintf("Failed to fetch nodeName from metadata server %s", err.Error()))
 		panic(err.Error())
 	}
 	pns.logger.Info(fmt.Sprintf("Nodename is %s", nodeName))
