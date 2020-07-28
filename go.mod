@@ -3,9 +3,11 @@ module github.com/roppenlabs/silent-assassin
 go 1.14
 
 require (
+	cloud.google.com/go v0.46.3
 	github.com/google/go-intervals v0.0.0-20171120085516-250c62ad245e
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/googleapis/gnostic v0.3.1 // indirect
+	github.com/gorilla/mux v1.7.4
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
