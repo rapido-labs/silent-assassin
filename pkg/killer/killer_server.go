@@ -22,7 +22,7 @@ func (ks killerService) StartServer(ctx context.Context, wg *sync.WaitGroup) {
 	router.HandleFunc("/preemption", ks.handlePreemption).Methods("POST")
 
 	srv := &http.Server{
-		Addr:    ks.cp.GetString(config.ServerHost),
+		Addr:    "127.0.0.1:8080",
 		Handler: router,
 	}
 
