@@ -9,12 +9,12 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: {{ .Release.Name | quote }}-client
+      app: "{{ .Release.Name }}-client"
       version: {{ .Values.version | quote }}
   template:
     metadata:
       labels:
-        app: {{ .Release.Name }}-client
+        app: "{{ .Release.Name }}-client"
         version: {{ .Values.version | quote }}
         team: {{ .Values.team }}
     spec:

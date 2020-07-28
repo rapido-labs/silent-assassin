@@ -12,7 +12,7 @@ import (
 )
 
 type preemptNode struct {
-	nodeName string
+	nodeName string `json:"nodename"`
 }
 
 func (ks killerService) StartServer(ctx context.Context, wg *sync.WaitGroup) {
@@ -22,7 +22,7 @@ func (ks killerService) StartServer(ctx context.Context, wg *sync.WaitGroup) {
 	router.HandleFunc("/preemption", ks.handlePreemption).Methods("POST")
 
 	srv := &http.Server{
-		Addr:    "127.0.0.1:8080",
+		Addr:    "0.0.0.0:8080",
 		Handler: router,
 	}
 
@@ -40,7 +40,7 @@ func (ks killerService) StartServer(ctx context.Context, wg *sync.WaitGroup) {
 
 func (ks killerService) handlePreemption(w http.ResponseWriter, r *http.Request) {
 	var preemptibleNode preemptNode
-	if err := json.NewDecoder(r.Body).Decode(preemptibleNode); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&preemptibleNode); err != nil {
 		ks.logger.Error("Error decoding the request body")
 		w.WriteHeader(http.StatusInternalServerError)
 	}

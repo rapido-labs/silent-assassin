@@ -80,14 +80,14 @@ func (pns *PreemptionNotifierService) watch() <-chan bool {
 	return pns.pendingTermination
 }
 func (pns *PreemptionNotifierService) reuestGracefullDeleteionOfPods(nodeName string) {
-	pns.logger.Debug("Calling Server to drain the node")
-	data, err := json.Marshal(preemptionRequest{nodeName})
+	pns.logger.Debug(fmt.Sprintf("Calling Server to drain the node %s", nodeName))
+	data, err := json.Marshal(preemptionRequest{nodeName: nodeName})
 	if err != nil {
 		pns.logger.Error(fmt.Sprintf("Error building request %s", err))
 	}
 	b := bytes.NewBuffer(data)
 
-	req, err := http.NewRequest("POST", pns.cp.GetString(config.ServerHost), b)
+	req, err := http.NewRequest("POST", pns.cp.GetString(config.ServerHost)+"/preemption", b)
 	if err != nil {
 		panic(err.Error())
 	}
