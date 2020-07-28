@@ -1,7 +1,7 @@
 SERVER_HOST: "http://silent-assassin.andromeda.svc.cluster.local"
 SPOTTER:
   POLL_INTERVAL_MS: 1000
-  LABEL_SELECTORS: "cloud.google.com/gke-preemptible=true,cloud.google.com/gke-preemptible=true"
+  LABEL_SELECTORS: "cloud.google.com/gke-preemptible=true,component=services"
   WHITE_LIST_INTERVAL_HOURS: "06:30-08:30,18:30-00:30"
 
 KILLER:

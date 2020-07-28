@@ -1,5 +1,5 @@
 package client
 
 type preemptionRequest struct {
-	nodeName string `json:"nodename"`
+	nodeName string `json:"NodeName"`
 }

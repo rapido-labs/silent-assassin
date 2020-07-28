@@ -12,7 +12,7 @@ import (
 )
 
 type preemptNode struct {
-	nodeName string `json:"nodename"`
+	NodeName string
 }
 
 func (ks killerService) StartServer(ctx context.Context, wg *sync.WaitGroup) {
@@ -41,13 +41,13 @@ func (ks killerService) StartServer(ctx context.Context, wg *sync.WaitGroup) {
 func (ks killerService) handlePreemption(w http.ResponseWriter, r *http.Request) {
 	var preemptibleNode preemptNode
 	if err := json.NewDecoder(r.Body).Decode(&preemptibleNode); err != nil {
-		ks.logger.Error("Error decoding the request body")
+		ks.logger.Error(fmt.Sprintf("Error decoding the request body %s", err.Error()))
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
-
-	node, err := ks.kubeClient.GetNode(preemptibleNode.nodeName)
+	node, err := ks.kubeClient.GetNode(preemptibleNode.NodeName)
 	if err != nil {
-		ks.logger.Error(fmt.Sprintf("Error fetching the node %s, %s", preemptibleNode.nodeName, err.Error()))
+		ks.logger.Error(fmt.Sprintf("Error fetching the node %s, %s", preemptibleNode.NodeName, err.Error()))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
