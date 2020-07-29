@@ -80,14 +80,16 @@ func (pns *PreemptionNotifierService) watch() <-chan bool {
 	return pns.pendingTermination
 }
 func (pns *PreemptionNotifierService) reuestGracefullDeleteionOfPods(nodeName string) {
-	pns.logger.Debug(fmt.Sprintf("Calling Server to drain the node %s", nodeName))
-	data, err := json.Marshal(preemptionRequest{nodeName: nodeName})
+	pns.logger.Info(fmt.Sprintf("Calling Server to drain the node %s", nodeName))
+	node := preemptionRequest{NodeName: nodeName}
+	data, err := json.Marshal(node)
 	if err != nil {
 		pns.logger.Error(fmt.Sprintf("Error building request %s", err))
 	}
 	b := bytes.NewBuffer(data)
 
-	req, err := http.NewRequest("POST", pns.cp.GetString(config.ServerHost)+"/preemption", b)
+	preemptionURI := fmt.Sprintf("%s/preemption", pns.cp.GetString(config.ServerHost))
+	req, err := http.NewRequest("POST", preemptionURI, b)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -96,8 +98,12 @@ func (pns *PreemptionNotifierService) reuestGracefullDeleteionOfPods(nodeName st
 	var res *http.Response
 	for i := 0; i < pns.cp.GetInt(config.ClientServerRetries); i++ {
 		res, err = pns.httpClient.Do(req)
-		if err != nil || res.StatusCode != 204 {
-			pns.logger.Error(fmt.Sprintf("Trial: %d Error calling Server: %s", i+1, err.Error()))
+		if err != nil {
+			pns.logger.Error(fmt.Sprintf("Trial: %d Error calling Server: %v", i+1, err))
+			continue
+		}
+		if res.StatusCode != 204 {
+			pns.logger.Error(fmt.Sprintf("Trial: %d Error calling Server: %v", i+1, res.StatusCode))
 			continue
 		}
 		break
