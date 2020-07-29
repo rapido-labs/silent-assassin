@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/roppenlabs/silent-assassin/pkg/config"
@@ -40,6 +41,7 @@ func (ks killerService) StartServer(ctx context.Context, wg *sync.WaitGroup) {
 
 func (ks killerService) handlePreemption(w http.ResponseWriter, r *http.Request) {
 	var preemptibleNode preemptNode
+	start := time.Now()
 	if err := json.NewDecoder(r.Body).Decode(&preemptibleNode); err != nil {
 		ks.logger.Error(fmt.Sprintf("Error decoding the request body %s", err.Error()))
 		w.WriteHeader(http.StatusInternalServerError)
@@ -72,6 +74,9 @@ func (ks killerService) handlePreemption(w http.ResponseWriter, r *http.Request)
 		ks.notifier.Error("DRAIN", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error()))
 		return
 	}
+	end := time.Now()
+	timeTakneToDrain := end.Sub(start).Seconds()
+	ks.logger.Info(fmt.Sprintf("Server took %d seconds to drain the node %s", timeTakneToDrain, preemptibleNode.NodeName))
 	ks.notifier.Info("DRAIN", nodeDetail)
 
 	ks.logger.Info(fmt.Sprintf("Successfully drained the node %s", node.Name))
