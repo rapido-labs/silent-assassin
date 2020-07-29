@@ -32,7 +32,7 @@ type PreemptionNotifierService struct {
 	cp                 config.IProvider
 }
 
-//NewPreemptionHandler creates an instance of preemption
+// NewPreemptionNotificationService creates an instance of preemptionNotifierService
 func NewPreemptionNotificationService(logger logger.IZapLogger, cp config.IProvider) *PreemptionNotifierService {
 	httpClient := http.DefaultClient
 	return &PreemptionNotifierService{
@@ -57,6 +57,7 @@ func (pns *PreemptionNotifierService) handleTermination(state string, exists boo
 }
 
 func (pns *PreemptionNotifierService) watch() <-chan bool {
+	//Watch for preemption event
 	go wait.Forever(func() {
 		err := pns.metadata.Subscribe(preemptionEventSuffix, pns.handleTermination)
 
@@ -66,6 +67,7 @@ func (pns *PreemptionNotifierService) watch() <-chan bool {
 
 	}, time.Second)
 
+	//Watch for maintainance event
 	if pns.cp.GetBool(config.ClientWatchMaintainanceEvents) {
 		go wait.Forever(func() {
 			err := pns.metadata.Subscribe(maintainanceEventSuffix, pns.handleTermination)
@@ -79,13 +81,19 @@ func (pns *PreemptionNotifierService) watch() <-chan bool {
 
 	return pns.pendingTermination
 }
+
+//reuestGracefullDeleteionOfPods requests the silent assassin server to delet pods in the node
 func (pns *PreemptionNotifierService) reuestGracefullDeleteionOfPods(nodeName string) {
 	pns.logger.Info(fmt.Sprintf("Calling Server to drain the node %s", nodeName))
-	node := preemptionRequest{NodeName: nodeName}
+
+	node := preemptionRequest{
+		NodeName: nodeName,
+	}
 	data, err := json.Marshal(node)
 	if err != nil {
 		pns.logger.Error(fmt.Sprintf("Error building request %s", err))
 	}
+
 	b := bytes.NewBuffer(data)
 
 	preemptionURI := fmt.Sprintf("%s/preemption", pns.cp.GetString(config.ServerHost))
@@ -95,15 +103,17 @@ func (pns *PreemptionNotifierService) reuestGracefullDeleteionOfPods(nodeName st
 	}
 
 	req.Header.Set("Content-type", "application/json")
+
 	var res *http.Response
+
 	for i := 0; i < pns.cp.GetInt(config.ClientServerRetries); i++ {
 		res, err = pns.httpClient.Do(req)
 		if err != nil {
-			pns.logger.Error(fmt.Sprintf("Trial: %d Error calling Server: %v", i+1, err))
+			pns.logger.Error(fmt.Sprintf("Trial %d: Error calling Server: %v", i+1, err))
 			continue
 		}
 		if res.StatusCode != 204 {
-			pns.logger.Error(fmt.Sprintf("Trial: %d Error calling Server: %v", i+1, res.StatusCode))
+			pns.logger.Error(fmt.Sprintf("Trial %d: Error calling Server response status %d", i+1, res.StatusCode))
 			continue
 		}
 		break
@@ -113,17 +123,18 @@ func (pns *PreemptionNotifierService) reuestGracefullDeleteionOfPods(nodeName st
 	}
 }
 
+//Start starts the preemptionNotificationService service
 func (pns *PreemptionNotifierService) Start(ctx context.Context, wg *sync.WaitGroup) {
 	nodeName, err := pns.metadata.InstanceName()
 	if err != nil {
-		pns.logger.Error(fmt.Sprintf("Failed to fetch nodeName from metadata server %s", err.Error()))
+		pns.logger.Error(fmt.Sprintf("Failed to fetch node name from metadata server %s", err.Error()))
 		panic(err.Error())
 	}
-	pns.logger.Info(fmt.Sprintf("Nodename is %s", nodeName))
+	pns.logger.Info(fmt.Sprintf("Node %s", nodeName))
 	for {
 		select {
 		case <-ctx.Done():
-			pns.logger.Info("Shutting down client")
+			pns.logger.Info("Shutting down Client")
 			wg.Done()
 			return
 		case termination := <-pns.watch():

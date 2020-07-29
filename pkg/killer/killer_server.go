@@ -16,6 +16,7 @@ type preemptNode struct {
 	NodeName string
 }
 
+//StartServer starts the killer server
 func (ks killerService) StartServer(ctx context.Context, wg *sync.WaitGroup) {
 	ks.logger.Info("Starting Killer server")
 
@@ -30,6 +31,7 @@ func (ks killerService) StartServer(ctx context.Context, wg *sync.WaitGroup) {
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
 			ks.logger.Error(fmt.Sprintf("Error starting server: %s", err.Error()))
+			panic(err.Error())
 		}
 	}()
 
@@ -39,6 +41,7 @@ func (ks killerService) StartServer(ctx context.Context, wg *sync.WaitGroup) {
 	return
 }
 
+//handlePreemption handles POST request on /preemption. This deletes the pods on the node requested.
 func (ks killerService) handlePreemption(w http.ResponseWriter, r *http.Request) {
 	var preemptibleNode preemptNode
 	start := time.Now()
@@ -58,6 +61,7 @@ func (ks killerService) handlePreemption(w http.ResponseWriter, r *http.Request)
 	if err := ks.makeNodeUnschedulable(node); err != nil {
 		ks.logger.Error(fmt.Sprintf("Failed to cordon the node %s, %s", node.Name, err.Error()))
 		w.WriteHeader(http.StatusInternalServerError)
+		ks.notifier.Error("CORDON", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error()))
 		return
 	}
 
@@ -75,8 +79,8 @@ func (ks killerService) handlePreemption(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	end := time.Now()
-	timeTakneToDrain := end.Sub(start).Seconds()
-	ks.logger.Info(fmt.Sprintf("Server took %d seconds to drain the node %s", timeTakneToDrain, preemptibleNode.NodeName))
+	timeTakenToDrain := end.Sub(start).Seconds()
+	ks.logger.Info(fmt.Sprintf("Took %f seconds to drain the node %s", timeTakenToDrain, node.Name))
 	ks.notifier.Info("DRAIN", nodeDetail)
 
 	ks.logger.Info(fmt.Sprintf("Successfully drained the node %s", node.Name))
