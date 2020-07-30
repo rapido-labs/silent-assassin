@@ -50,6 +50,9 @@ var startCmd = &cobra.Command{
 		wg.Add(1)
 		go ks.Start(ctx, wg)
 
+		wg.Add(1)
+		go ks.StartServer(ctx, wg)
+
 		<-sigChan
 
 		zapLogger.Info("Starting shut down")
