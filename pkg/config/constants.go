@@ -3,6 +3,7 @@ package config
 const KubernetesRunMode = "kubernetes.run_mode"
 
 const ServerHost = "server_host"
+const ServerPort = "server_port"
 
 const SpotterNodeSelectors = "spotter.label_selectors"
 const SpotterPollIntervalMs = "spotter.poll_interval_ms"

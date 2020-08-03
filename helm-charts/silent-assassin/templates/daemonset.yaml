@@ -18,6 +18,9 @@ spec:
         version: {{ .Values.version | quote }}
         team: {{ .Values.team }}
     spec:
+      # Necessary to hit the node's metadata server when using Workload Identity
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       serviceAccountName: {{ .Release.Name }}
       initContainers:
         - name: install

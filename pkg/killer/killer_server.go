@@ -23,8 +23,9 @@ func (ks killerService) StartServer(ctx context.Context, wg *sync.WaitGroup) {
 	router := mux.NewRouter()
 	router.HandleFunc("/preemption", ks.handlePreemption).Methods("POST")
 
+	host := fmt.Sprintf("0.0.0.0:%d", ks.cp.GetInt32(config.ServerPort))
 	srv := &http.Server{
-		Addr:    "0.0.0.0:8080",
+		Addr:    host,
 		Handler: router,
 	}
 
