@@ -20,10 +20,10 @@ type killerService struct {
 	logger       logger.IZapLogger
 	kubeClient   k8s.IKubernetesClient
 	gcloudClient gcloud.IGCloudClient
-	notifier     notifier.INotifier
+	notifier     notifier.INotifierClient
 }
 
-func NewKillerService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, gc gcloud.IGCloudClient, nf notifier.INotifier) killerService {
+func NewKillerService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, gc gcloud.IGCloudClient, nf notifier.INotifierClient) killerService {
 	return killerService{
 		cp:           cp,
 		logger:       zl,
@@ -135,7 +135,6 @@ func (ks killerService) waitforDrainToFinish(nodeName string, timeout int) error
 	start := time.Now()
 	for {
 		podsPending, err := ks.getPodsToBeDeleted(nodeName)
-
 		if err != nil {
 			ks.logger.Error(fmt.Sprintf("Error fetching pods: %s", err.Error()))
 			return err
@@ -202,24 +201,17 @@ func (ks killerService) kill() {
 		// Drain the node,
 		if err := ks.startDrainNode(node.Name); err != nil {
 			ks.logger.Error(fmt.Sprintf("Failed to drain the node %s, %s", node.Name, err.Error()))
-
-			if err := ks.notifier.Error("DRAIN", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error())); err != nil {
-				ks.logger.Error(fmt.Sprintf("failed to send notification: %s", err.Error()))
-			}
+			ks.notifier.Error("DRAIN", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error()))
 			continue
 		}
-		if err := ks.notifier.Info("DRAIN", nodeDetail); err != nil {
-			ks.logger.Error(fmt.Sprintf("failed to send notification: %s", err.Error()))
-		}
+		ks.notifier.Info("DRAIN", nodeDetail)
 
 		//Wait for the pods to get evicted.
 		drainingTimeout := ks.cp.GetInt(config.KillerDrainingTimeoutMs)
 
 		if err := ks.waitforDrainToFinish(node.Name, drainingTimeout); err != nil {
 			ks.logger.Error(fmt.Sprintf("Error while waiting for drain on node %s, %s", node.Name, err.Error()))
-			if err := ks.notifier.Error("DRAIN", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error())); err != nil {
-				ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
-			}
+			ks.notifier.Error("DRAIN", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error()))
 			continue
 		}
 		ks.logger.Info(fmt.Sprintf("Successfully drained the node %s", node.Name))
@@ -228,27 +220,19 @@ func (ks killerService) kill() {
 		ks.logger.Info(fmt.Sprintf("Deleting node %s", node.Name))
 		if err := ks.kubeClient.DeleteNode(node.Name); err != nil {
 			ks.logger.Info(fmt.Sprintf("Error deleting the node %s", node.Name))
-			if err := ks.notifier.Error("DELETE_NODE", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error())); err != nil {
-				ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
-			}
+			ks.notifier.Error("DELETE_NODE", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error()))
 			continue
 		}
-		if err := ks.notifier.Info("DELETE NODE", nodeDetail); err != nil {
-			ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
-		}
+		ks.notifier.Info("DELETE NODE", nodeDetail)
 
 		// Delete gcloud instance.
 		projectID, zone := getProjectIDAndZoneFromNode(node)
 		ks.logger.Info(fmt.Sprintf("Deletig google instance %s", node.Name))
 		if err := ks.gcloudClient.DeleteNode(projectID, zone, node.Name); err != nil {
 			ks.logger.Error(fmt.Sprintf("Could not kill the node %s", node.Name))
-			if err := ks.notifier.Error("DELETE_INSTANCE", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error())); err != nil {
-				ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
-			}
+			ks.notifier.Error("DELETE_INSTANCE", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error()))
 			continue
 		}
-		if err := ks.notifier.Info("DELETE_INSTANCE", nodeDetail); err != nil {
-			ks.logger.Error(fmt.Sprintf("Notifier error %s", err.Error()))
-		}
+		ks.notifier.Info("DELETE_INSTANCE", nodeDetail)
 	}
 }

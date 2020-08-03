@@ -41,5 +41,5 @@ func (m *K8sClientMock) DeletePod(name, namespace string) error {
 
 func (m *K8sClientMock) GetPodsInNode(name string) ([]v1.Pod, error) {
 	args := m.Called(name)
-	return args.Get(0).([]v1.Pod), args.Error(0)
+	return args.Get(0).([]v1.Pod), args.Error(1)
 }

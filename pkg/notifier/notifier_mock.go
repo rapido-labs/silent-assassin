@@ -2,16 +2,12 @@ package notifier
 
 import "github.com/stretchr/testify/mock"
 
-type NotifierMock struct {
+type NotifierClientMock struct {
 	mock.Mock
 }
 
-func (m NotifierMock) Info(event, details string) error {
-	args := m.Called(event, details)
-	return args.Error(0)
+func (m NotifierClientMock) Info(event, details string) {
 }
 
-func (m NotifierMock) Error(event, details string) error {
-	args := m.Called(event, details)
-	return args.Error(0)
+func (m NotifierClientMock) Error(event, details string) {
 }

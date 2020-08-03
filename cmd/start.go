@@ -33,24 +33,25 @@ var startCmd = &cobra.Command{
 		configProvider := config.Init(cfgFile)
 		zapLogger := logger.Init(configProvider)
 		kubeClient := k8s.NewClient(configProvider, zapLogger)
-
-		slackClient, err := notifier.NewSlackClient(configProvider)
-		if err != nil {
-			zapLogger.Error(fmt.Sprintf("Error creating Slack client: %s", err.Error()))
-		}
-		notifier := notifier.NewNotifier(slackClient)
 		gcloudClient, err := gcloud.NewClient()
 		if err != nil {
 			zapLogger.Error(fmt.Sprintf("Error creating gcloud client: %s", err.Error()))
 		}
 
-		ss := spotter.NewSpotterService(configProvider, zapLogger, kubeClient, notifier)
+		ns := notifier.NewNotifier(configProvider, zapLogger)
+		wg.Add(1)
+		go ns.Start(ctx, wg)
+
+		ss := spotter.NewSpotterService(configProvider, zapLogger, kubeClient, ns)
 		wg.Add(1)
 		go ss.Start(ctx, wg)
 
-		ks := killer.NewKillerService(configProvider, zapLogger, kubeClient, gcloudClient, notifier)
+		ks := killer.NewKillerService(configProvider, zapLogger, kubeClient, gcloudClient, ns)
 		wg.Add(1)
 		go ks.Start(ctx, wg)
+
+		wg.Add(1)
+		go ks.StartServer(ctx, wg)
 
 		<-sigChan
 
