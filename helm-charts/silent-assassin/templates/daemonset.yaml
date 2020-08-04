@@ -11,6 +11,10 @@ spec:
     matchLabels:
       app: "{{ .Release.Name }}-client"
       version: {{ .Values.version | quote }}
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
   template:
     metadata:
       labels:
