@@ -41,7 +41,7 @@ spec:
             - "-vault-addr"
             - "{{.Values.vault.host}}:{{.Values.vault.port}}"
             - "-template"
-            - "/usr/app/templates/application.yaml:/layers/golang/app/config/.silent-assassin.yaml"
+            - "/usr/app/templates/application.yaml:/layers/golang/app/config/application.yaml"
             - "-once"
             - "-log-level=trace"
           volumeMounts:
