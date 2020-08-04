@@ -6,9 +6,10 @@ pipelines:
       repo:
         git: git@github.com:roppenlabs/silent-assassin.git
         branch: develop
-    template: go-hermes
+    template: hermes
     parameters:
       environment: development
+      namespace: andromeda
       app: silent-assassin
   silent-assassin-staging:
     group: devops
@@ -16,7 +17,19 @@ pipelines:
       repo:
         git: git@github.com:roppenlabs/silent-assassin.git
         branch: release
-    template: go-hermes
+    template: hermes
     parameters:
       environment: staging
+      namespace: andromeda
+      app: silent-assassin
+  silent-assassin-production:
+    group: devops
+    materials:
+      repo:
+        git: git@github.com:roppenlabs/silent-assassin.git
+        branch: master
+    template: hermes
+    parameters:
+      environment: production
+      namespace: andromeda
       app: silent-assassin
