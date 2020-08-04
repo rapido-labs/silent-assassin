@@ -5,7 +5,7 @@ pipelines:
     materials:
       repo:
         git: git@github.com:roppenlabs/silent-assassin.git
-        branch: develop
+        branch: f/hermes
     template: hermes
     parameters:
       environment: development
