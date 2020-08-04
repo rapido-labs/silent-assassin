@@ -5,6 +5,3 @@ build.json
 cover.out
 golang/
 skaffold.yaml
-helm-charts/silent-assassin/Chart.yaml
-helm-charts/silent-assassin/README.md
-# helm-charts/silent-assassin/templates/
