@@ -3,3 +3,5 @@ out
 build-state.json
 build.json
 cover.out
+golang/
+skaffold.yaml
