@@ -17,7 +17,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -36,7 +35,6 @@ var clientCmd = &cobra.Command{
 	// Long description will be updated once entire refactoring is done.
 	Long: ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("client called")
 		sigChan := make(chan os.Signal)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		wg := &sync.WaitGroup{}
