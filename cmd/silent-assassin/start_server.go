@@ -29,6 +29,7 @@ import (
 	"github.com/roppenlabs/silent-assassin/pkg/killer"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
 	"github.com/roppenlabs/silent-assassin/pkg/notifier"
+	"github.com/roppenlabs/silent-assassin/pkg/server"
 	"github.com/roppenlabs/silent-assassin/pkg/spotter"
 	"github.com/spf13/cobra"
 )
@@ -65,8 +66,9 @@ var serverCmd = &cobra.Command{
 		wg.Add(1)
 		go ks.Start(ctx, wg)
 
+		server := server.NewServer(configProvider, zapLogger, ks)
 		wg.Add(1)
-		go ks.StartServer(ctx, wg)
+		go server.Start(ctx, wg)
 
 		<-sigChan
 

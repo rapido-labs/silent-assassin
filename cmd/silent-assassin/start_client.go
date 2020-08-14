@@ -43,7 +43,7 @@ var clientCmd = &cobra.Command{
 		configProvider := config.Init(cfgFile)
 		zapLogger := logger.Init(configProvider)
 
-		pns := client.NewPreemptionNotificationService(zapLogger, configProvider)
+		pns := client.NewPreemptionNotifier(zapLogger, configProvider)
 		wg.Add(1)
 		go pns.Start(ctx, wg)
 		<-sigChan
