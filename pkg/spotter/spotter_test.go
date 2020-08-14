@@ -63,7 +63,7 @@ func (suite *SpotterTestSuite) TestShouldAnnotateIfAbsent() {
 		Items: []v1.Node{nodeAlreadyAnnotated, nodeToBeAnnotated},
 	}
 	suite.k8sMock.On("GetNodes", mock.Anything).Return(&nodeList)
-	suite.k8sMock.On("AnnotateNode", mock.MatchedBy(func(input v1.Node) bool {
+	suite.k8sMock.On("UpdateNode", mock.MatchedBy(func(input v1.Node) bool {
 
 		_, found := input.ObjectMeta.Annotations["silent-assassin/expiry-time"]
 		if !found {
