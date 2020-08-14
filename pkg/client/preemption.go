@@ -100,7 +100,7 @@ func (pns PreemptionNotifier) requestEvacuationOfPods(nodeName string) {
 	b := bytes.NewBuffer(data)
 
 	preemptionURI := fmt.Sprintf("%s%s", pns.cp.GetString(config.EvacuatePodsURI), pns.cp.GetString(config.ServerHost))
-	req, err := http.NewRequest("POST", preemptionURI, b)
+	req, err := http.NewRequest(http.MethodPost, preemptionURI, b)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -115,7 +115,7 @@ func (pns PreemptionNotifier) requestEvacuationOfPods(nodeName string) {
 			pns.logger.Error(fmt.Sprintf("Trial %d: Error calling Server: %v", i+1, err))
 			continue
 		}
-		if res.StatusCode != 204 {
+		if res.StatusCode != http.StatusNoContent {
 			pns.logger.Error(fmt.Sprintf("Trial %d: Error calling Server response status %d", i+1, res.StatusCode))
 			continue
 		}
