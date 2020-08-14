@@ -9,19 +9,14 @@ type K8sClientMock struct {
 	mock.Mock
 }
 
-func (m *K8sClientMock) GetNodes(labels []string) *v1.NodeList {
-	args := m.Called(labels)
+func (m *K8sClientMock) GetNodes(labelSelector string) *v1.NodeList {
+	args := m.Called(labelSelector)
 	return args.Get(0).(*v1.NodeList)
 }
 
 func (m *K8sClientMock) GetNode(name string) (v1.Node, error) {
 	args := m.Called(name)
 	return args.Get(0).(v1.Node), args.Error(0)
-}
-
-func (m *K8sClientMock) AnnotateNode(node v1.Node) error {
-	args := m.Called(node)
-	return args.Error(0)
 }
 
 func (m *K8sClientMock) UpdateNode(node v1.Node) error {
