@@ -52,7 +52,7 @@ func (k *KillerTestSuite) TestShouldReturnExpiredNodes() {
 
 	ks := NewKillerService(k.configMock, k.logger, k.k8sMock, k.gCloudMock, k.notifierMock)
 
-	nodelist := ks.findExpiredTimeNodes([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
+	nodelist := ks.findExpiredTimeNodes("cloud.google.com/gke-preemptible=true,label2=test")
 
 	assert.Contains(k.T(), nodelist, preemptibleNodeExpired, "Node-1 should be returned")
 	assert.NotContains(k.T(), nodelist, preemptibleNodeNotExpired, "Node-2 should not be returned")
