@@ -49,7 +49,7 @@ func NewNotifier(cp config.IProvider, zl logger.IZapLogger) *Notifier {
 }
 
 //Start starts the notifier service
-func (n *Notifier) Start(ctx context.Context, wg *sync.WaitGroup) {
+func (n Notifier) Start(ctx context.Context, wg *sync.WaitGroup) {
 	for {
 		select {
 		case <-ctx.Done():

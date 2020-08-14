@@ -131,7 +131,7 @@ func (s Slack) postMessage(address string, payload interface{}) error {
 
 	b := bytes.NewBuffer(data)
 
-	req, err := http.NewRequest("POST", address, b)
+	req, err := http.NewRequest(http.MethodPost, address, b)
 	if err != nil {
 		return fmt.Errorf("http NewRequest failed: %w", err)
 	}
@@ -147,7 +147,7 @@ func (s Slack) postMessage(address string, payload interface{}) error {
 
 	defer res.Body.Close()
 	statusCode := res.StatusCode
-	if statusCode != 200 {
+	if statusCode != http.StatusOK {
 		body, _ := ioutil.ReadAll(res.Body)
 		return fmt.Errorf("Sending notification failed: %s", string(body))
 	}

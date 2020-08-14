@@ -6,8 +6,8 @@ type NotifierClientMock struct {
 	mock.Mock
 }
 
-func (m NotifierClientMock) Info(event, details string) {
+func (m *NotifierClientMock) Info(event, details string) {
 }
 
-func (m NotifierClientMock) Error(event, details string) {
+func (m *NotifierClientMock) Error(event, details string) {
 }
