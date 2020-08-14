@@ -8,39 +8,45 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/roppenlabs/silent-assassin/pkg/config"
+	"github.com/roppenlabs/silent-assassin/pkg/killer"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
 )
 
 type Server struct {
 	apiServer *http.Server
 	logger    logger.IZapLogger
+	killer    killer.KillerService
+	cp        config.IProvider
 }
 
 //NewServer creates new server.
-func NewServer(cp config.IProvider, zapLogger logger.IZapLogger) Server {
-
-	router := mux.NewRouter()
-	router.HandleFunc("/termination", ks.handlePreemption).Methods("POST")
+func NewServer(cp config.IProvider, zapLogger logger.IZapLogger, ks killer.KillerService) Server {
 
 	host := fmt.Sprintf("%s:%d", cp.GetString(config.ServerHost), cp.GetInt32(config.ServerPort))
 
 	srv := &http.Server{
-		Addr:    host,
-		Handler: router,
+		Addr: host,
 	}
 
 	return Server{
 		apiServer: srv,
 		logger:    zapLogger,
+		killer:    ks,
+		cp:        cp,
 	}
 }
 
-//StartServer starts the server.
-func (s Server) StartServer(ctx context.Context, wg *sync.WaitGroup) {
+func (s Server) Start(ctx context.Context, wg *sync.WaitGroup) {
 	s.logger.Info("Starting server")
+	s.setRoutes()
+	go s.listenServer()
+	s.waitForShutdown(ctx, wg)
+}
 
-	go s.listenServer(srv.apiServer)
-	s.waitForShutdown(ctx)
+func (s Server) setRoutes() {
+	router := mux.NewRouter()
+	router.HandleFunc(s.cp.GetString(config.EvacuatePodsURI), s.handleTermination).Methods(http.MethodPost)
+	s.apiServer.Handler = router
 }
 
 func (s Server) listenServer() {
