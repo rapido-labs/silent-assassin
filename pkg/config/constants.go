@@ -32,8 +32,10 @@ const SlackIconURL = "slack.slack_icon_url"
 const SlackTimeoutMs = "slack.slack_timeout"
 
 const EventAnnotate = "ANNOTATE"
-const EventDRAIN = "DRAIN"
-const EventCORDON = "CORDON"
+const EventDrain = "DRAIN"
+const EventCordon = "CORDON"
+const EventDeleteNode = "DELETE NODE"
+const EventDeleteInstance = "DELETE INSTANCE"
 
 const CommaSeparater = ","
 

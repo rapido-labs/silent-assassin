@@ -20,7 +20,7 @@ type Server struct {
 }
 
 //NewServer creates new server.
-func NewServer(cp config.IProvider, zapLogger logger.IZapLogger, ks killer.KillerService) Server {
+func NewServer(cp config.IProvider, zapLogger logger.IZapLogger, ks killer.KillerService) *Server {
 
 	host := fmt.Sprintf("%s:%d", cp.GetString(config.ServerHost), cp.GetInt32(config.ServerPort))
 
@@ -28,7 +28,7 @@ func NewServer(cp config.IProvider, zapLogger logger.IZapLogger, ks killer.Kille
 		Addr: host,
 	}
 
-	return Server{
+	return &Server{
 		apiServer: srv,
 		logger:    zapLogger,
 		killer:    ks,
@@ -36,27 +36,28 @@ func NewServer(cp config.IProvider, zapLogger logger.IZapLogger, ks killer.Kille
 	}
 }
 
-func (s Server) Start(ctx context.Context, wg *sync.WaitGroup) {
+func (s *Server) Start(ctx context.Context, wg *sync.WaitGroup) {
 	s.logger.Info("Starting server")
 	s.setRoutes()
 	go s.listenServer()
 	s.waitForShutdown(ctx, wg)
 }
 
-func (s Server) setRoutes() {
+func (s *Server) setRoutes() {
 	router := mux.NewRouter()
-	router.HandleFunc(s.cp.GetString(config.EvacuatePodsURI), s.handleTermination).Methods(http.MethodPost)
+	router.HandleFunc("/termination", s.handleTermination).Methods(http.MethodPost)
 	s.apiServer.Handler = router
 }
 
-func (s Server) listenServer() {
+func (s *Server) listenServer() {
 	if err := s.apiServer.ListenAndServe(); err != nil {
 		s.logger.Error(fmt.Sprintf("Error starting server: %s", err.Error()))
 		panic(err.Error())
 	}
+	fmt.Println(s.apiServer.Handler)
 }
 
-func (s Server) waitForShutdown(ctx context.Context, wg *sync.WaitGroup) {
+func (s *Server) waitForShutdown(ctx context.Context, wg *sync.WaitGroup) {
 	<-ctx.Done()
 	s.apiServer.Shutdown(ctx)
 	wg.Done()

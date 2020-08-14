@@ -4,6 +4,9 @@ go 1.14
 
 require (
 	cloud.google.com/go v0.46.3
+	github.com/alicebob/miniredis v2.5.0+incompatible
+	github.com/coreos/etcd v3.3.13+incompatible
+	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/google/go-intervals v0.0.0-20171120085516-250c62ad245e
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/googleapis/gnostic v0.3.1 // indirect
