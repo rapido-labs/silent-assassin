@@ -11,7 +11,7 @@ import (
 
 type severity string
 
-// DANGER, WARNING AND GOOD are two severity levels for notifications.
+// DANGER AND GOOD are two severity levels for notifications.
 const (
 	DANGER severity = "#FF0000"
 	GOOD   severity = "#006400"

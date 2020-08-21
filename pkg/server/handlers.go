@@ -8,13 +8,13 @@ import (
 	"github.com/roppenlabs/silent-assassin/pkg/config"
 )
 
-type Node struct {
+type NodeTerminationRequest struct {
 	Name string
 }
 
 //handlePreemption handles POST request on /termination. This deletes the pods on the node requested.
 func (s Server) handleTermination(w http.ResponseWriter, r *http.Request) {
-	var node Node
+	var node NodeTerminationRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&node); err != nil {
 		s.logger.Error(fmt.Sprintf("Error decoding the request body %s", err.Error()))

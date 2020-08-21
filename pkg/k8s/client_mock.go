@@ -16,7 +16,7 @@ func (m *K8sClientMock) GetNodes(labelSelector string) *v1.NodeList {
 
 func (m *K8sClientMock) GetNode(name string) (v1.Node, error) {
 	args := m.Called(name)
-	return args.Get(0).(v1.Node), args.Error(0)
+	return args.Get(0).(v1.Node), args.Error(1)
 }
 
 func (m *K8sClientMock) UpdateNode(node v1.Node) error {

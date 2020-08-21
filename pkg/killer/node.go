@@ -21,7 +21,7 @@ func getExpiryTime(node v1.Node) string {
 }
 
 //findExpiredTimeNodes gets the list of nodes whose expiry time set is older than current time
-// This eligible for deletion.
+//These nodes are eligible for deletion.
 func (ks KillerService) findExpiredTimeNodes(labelSelector string) []v1.Node {
 	nodeList := ks.kubeClient.GetNodes(labelSelector)
 	nodesToBeDeleted := make([]v1.Node, 0)
@@ -85,7 +85,7 @@ func (ks KillerService) waitforDrainToFinish(nodeName string, timeout uint32) er
 
 //startDrainNode will delete the pods running on the node passed
 //in the arugment.
-func (ks KillerService) startDrainNode(nodeName string) error {
+func (ks KillerService) startNodeDrain(nodeName string) error {
 	filteredPodList, err := ks.getPodsToBeDeleted(nodeName)
 	if err != nil {
 		return err
@@ -165,7 +165,7 @@ func (ks KillerService) EvacuatePodsFromNode(name string, timeout uint32, preemp
 		return err
 	}
 
-	if err := ks.startDrainNode(node.Name); err != nil {
+	if err := ks.startNodeDrain(node.Name); err != nil {
 		ks.logger.Error(fmt.Sprintf("Failed to drain the node %s, %s", node.Name, err.Error()))
 		ks.notifier.Error(config.EventDrain, fmt.Sprintf("%s\nError:%s", nodeDetails, err.Error()))
 		return err
