@@ -6,7 +6,7 @@ type INotifierClient interface {
 }
 
 //publish publishes the notifications to the notificationEventchannel od Notifier struct.
-func (n Notifier) publish(severity severity, event, details string) {
+func (n NotificationService) publish(severity severity, event, details string) {
 	data := Notification{
 		Severity: severity,
 		Title:    event,
@@ -17,11 +17,11 @@ func (n Notifier) publish(severity severity, event, details string) {
 }
 
 //Info is for pushing events of level Info, this will print notifications in green color
-func (n Notifier) Info(event, details string) {
+func (n NotificationService) Info(event, details string) {
 	n.publish(GOOD, event, details)
 }
 
 //Error is for pushing events of level error, this will print notifications in red color
-func (n Notifier) Error(event, details string) {
+func (n NotificationService) Error(event, details string) {
 	n.publish(DANGER, event, details)
 }

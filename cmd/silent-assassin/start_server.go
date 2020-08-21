@@ -10,11 +10,11 @@ import (
 
 	"github.com/roppenlabs/silent-assassin/pkg/config"
 	"github.com/roppenlabs/silent-assassin/pkg/gcloud"
+	"github.com/roppenlabs/silent-assassin/pkg/httpserver"
 	"github.com/roppenlabs/silent-assassin/pkg/k8s"
 	"github.com/roppenlabs/silent-assassin/pkg/killer"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
 	"github.com/roppenlabs/silent-assassin/pkg/notifier"
-	"github.com/roppenlabs/silent-assassin/pkg/server"
 	"github.com/roppenlabs/silent-assassin/pkg/spotter"
 	"github.com/spf13/cobra"
 )
@@ -39,7 +39,7 @@ var serverCmd = &cobra.Command{
 			zapLogger.Error(fmt.Sprintf("Error creating gcloud client: %s", err.Error()))
 		}
 
-		ns := notifier.NewNotifier(configProvider, zapLogger)
+		ns := notifier.NewNotificationService(configProvider, zapLogger)
 		wg.Add(1)
 		go ns.Start(ctx, wg)
 
@@ -51,7 +51,7 @@ var serverCmd = &cobra.Command{
 		wg.Add(1)
 		go ks.Start(ctx, wg)
 
-		server := server.NewHttpServer(configProvider, zapLogger, ks)
+		server := httpserver.New(configProvider, zapLogger, ks)
 		wg.Add(1)
 		go server.Start(ctx, wg)
 

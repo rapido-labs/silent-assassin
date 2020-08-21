@@ -7,8 +7,8 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/roppenlabs/silent-assassin/pkg/client"
 	"github.com/roppenlabs/silent-assassin/pkg/config"
+	"github.com/roppenlabs/silent-assassin/pkg/informer"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +27,7 @@ var clientCmd = &cobra.Command{
 		configProvider := config.Init(cfgFile)
 		zapLogger := logger.Init(configProvider)
 
-		pns := client.NewPreemptionNotifier(zapLogger, configProvider)
+		pns := informer.NewInformerService(zapLogger, configProvider)
 		wg.Add(1)
 		go pns.Start(ctx, wg)
 		<-sigChan

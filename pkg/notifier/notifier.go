@@ -23,14 +23,14 @@ type Notification struct {
 	Details  string
 }
 
-//Notifier is a notification engine
-type Notifier struct {
+//NotificationService is a notification engine
+type NotificationService struct {
 	notificationEvent chan Notification
 	provider          Provider
 }
 
 //NewNotifier creates a new notifier client
-func NewNotifier(cp config.IProvider, zl logger.IZapLogger) *Notifier {
+func NewNotificationService(cp config.IProvider, zl logger.IZapLogger) *NotificationService {
 	var err error
 	var provider Provider
 	provider = noProvider{}
@@ -42,14 +42,14 @@ func NewNotifier(cp config.IProvider, zl logger.IZapLogger) *Notifier {
 		provider = noProvider{}
 	}
 
-	return &Notifier{
+	return &NotificationService{
 		provider:          provider,
 		notificationEvent: make(chan Notification),
 	}
 }
 
 //Start starts the notifier service
-func (n Notifier) Start(ctx context.Context, wg *sync.WaitGroup) {
+func (n NotificationService) Start(ctx context.Context, wg *sync.WaitGroup) {
 	for {
 		select {
 		case <-ctx.Done():

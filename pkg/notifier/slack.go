@@ -11,8 +11,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/roppenlabs/silent-assassin/internal/restclient"
 	"github.com/roppenlabs/silent-assassin/pkg/config"
+	"github.com/roppenlabs/silent-assassin/pkg/utils"
 )
 
 //Slack contains information about slack webhook
@@ -22,7 +22,7 @@ type Slack struct {
 	channel        string
 	iconURL        string
 	messageTimeout uint32
-	httpClient     restclient.IHTTPClient
+	httpClient     utils.IHTTPClient
 }
 
 //SlackPayload holds the channel and Attachments

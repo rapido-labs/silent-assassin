@@ -1,4 +1,4 @@
-package client
+package informer
 
 import (
 	"bytes"
@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/roppenlabs/silent-assassin/internal/restclient"
 	"github.com/roppenlabs/silent-assassin/pkg/config"
 	"github.com/roppenlabs/silent-assassin/pkg/gcloud"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
+	"github.com/roppenlabs/silent-assassin/pkg/utils"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -27,18 +27,18 @@ const (
 type node struct {
 	Name string
 }
-type PreemptionNotifier struct {
+type InformerService struct {
 	logger             logger.IZapLogger
 	pendingTermination chan bool
 	metadata           gcloud.IMetadata
-	httpClient         restclient.IHTTPClient
+	httpClient         utils.IHTTPClient
 	cp                 config.IProvider
 }
 
-// NewPreemptionNotifier creates an instance of preemptionNotifierService
-func NewPreemptionNotifier(logger logger.IZapLogger, cp config.IProvider) PreemptionNotifier {
+// NewInformerService creates an instance of preemptionNotifierService
+func NewInformerService(logger logger.IZapLogger, cp config.IProvider) InformerService {
 	httpClient := http.DefaultClient
-	return PreemptionNotifier{
+	return InformerService{
 		logger:             logger,
 		pendingTermination: make(chan bool),
 		metadata:           gcloud.Mclient{},
@@ -47,7 +47,7 @@ func NewPreemptionNotifier(logger logger.IZapLogger, cp config.IProvider) Preemp
 	}
 }
 
-func (pns PreemptionNotifier) handleTermination(state string, exists bool) error {
+func (pns InformerService) handleTermination(state string, exists bool) error {
 	if !exists {
 		pns.logger.Error("Preemption event metadata API deleted unexpectedly")
 	}
@@ -59,7 +59,7 @@ func (pns PreemptionNotifier) handleTermination(state string, exists bool) error
 	return nil
 }
 
-func (pns PreemptionNotifier) watch() <-chan bool {
+func (pns InformerService) watch() <-chan bool {
 	//Watch for preemption event
 	go wait.Forever(func() {
 		err := pns.metadata.Subscribe(preemptionEventSuffix, pns.handleTermination)
@@ -85,8 +85,8 @@ func (pns PreemptionNotifier) watch() <-chan bool {
 	return pns.pendingTermination
 }
 
-//reuestGracefullDeleteionOfPods requests the silent assassin server to delet pods in the node
-func (pns PreemptionNotifier) requestEvacuationOfPods(nodeName string) {
+//Request silent-assassin server of the preemption for graceful deleteion of pods in the node
+func (pns InformerService) informPreemption(nodeName string) {
 	pns.logger.Info(fmt.Sprintf("Calling Server to drain the node %s", nodeName))
 
 	node := node{
@@ -127,7 +127,7 @@ func (pns PreemptionNotifier) requestEvacuationOfPods(nodeName string) {
 }
 
 //Start starts the preemptionNotificationService service
-func (pns PreemptionNotifier) Start(ctx context.Context, wg *sync.WaitGroup) {
+func (pns InformerService) Start(ctx context.Context, wg *sync.WaitGroup) {
 	nodeName, err := pns.metadata.InstanceName()
 	if err != nil {
 		pns.logger.Error(fmt.Sprintf("Failed to fetch node name from metadata server %s", err.Error()))
@@ -142,7 +142,7 @@ func (pns PreemptionNotifier) Start(ctx context.Context, wg *sync.WaitGroup) {
 			return
 		case termination := <-pns.watch():
 			if termination {
-				pns.requestEvacuationOfPods(nodeName)
+				pns.informPreemption(nodeName)
 			}
 		}
 	}
