@@ -30,7 +30,7 @@ type NotificationService struct {
 }
 
 //NewNotifier creates a new notifier client
-func NewNotificationService(cp config.IProvider, zl logger.IZapLogger) *NotificationService {
+func NewNotificationService(cp config.IProvider, zl logger.IZapLogger) NotificationService {
 	var err error
 	var provider Provider
 	provider = noProvider{}
@@ -42,7 +42,7 @@ func NewNotificationService(cp config.IProvider, zl logger.IZapLogger) *Notifica
 		provider = noProvider{}
 	}
 
-	return &NotificationService{
+	return NotificationService{
 		provider:          provider,
 		notificationEvent: make(chan Notification),
 	}
