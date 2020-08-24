@@ -45,7 +45,7 @@ func (s *Server) Start(ctx context.Context, wg *sync.WaitGroup) {
 
 func (s *Server) setRoutes() {
 	router := mux.NewRouter()
-	router.HandleFunc("/termination", s.handleTermination).Methods(http.MethodPost)
+	router.HandleFunc(config.EvacuatePodsURI, s.handleTermination).Methods(http.MethodPost)
 	s.apiServer.Handler = router
 }
 

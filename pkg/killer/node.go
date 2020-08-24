@@ -147,7 +147,7 @@ func getNodeDetails(node v1.Node, preemption bool) string {
 		node.Name, preemption, node.CreationTimestamp, node.Annotations[config.ExpiryTimeAnnotation])
 }
 
-//handlePreemption handles POST request on /termination. This deletes the pods on the node requested.
+//handlePreemption handles POST request on EvacuatePodsURI. This deletes the pods on the node requested.
 func (ks KillerService) EvacuatePodsFromNode(name string, timeout uint32, preemption bool) error {
 	start := time.Now()
 

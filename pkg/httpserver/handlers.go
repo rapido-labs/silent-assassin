@@ -12,7 +12,7 @@ type NodeTerminationRequest struct {
 	Name string
 }
 
-//handlePreemption handles POST request on /termination. This deletes the pods on the node requested.
+//handlePreemption handles POST request on EvacuatePodsURI. This deletes the pods on the node requested.
 func (s Server) handleTermination(w http.ResponseWriter, r *http.Request) {
 	var node NodeTerminationRequest
 
