@@ -5,3 +5,4 @@ build.json
 cover.out
 golang/
 skaffold.yaml
+coverage.out

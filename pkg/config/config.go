@@ -103,7 +103,6 @@ func (f *Provider) GetStringMapStringSlice(key string) map[string][]string {
 func (f *Provider) GetSizeInBytes(key string) uint {
 	return f.Viper.GetSizeInBytes(key)
 }
-
 func (f *Provider) SplitStringToSlice(key string, sep string) []string {
 	str := f.Viper.GetString(key)
 	return strings.Split(str, sep)

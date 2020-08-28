@@ -7,18 +7,17 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/roppenlabs/silent-assassin/pkg/client"
 	"github.com/roppenlabs/silent-assassin/pkg/config"
+	"github.com/roppenlabs/silent-assassin/pkg/informer"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
-var startClientCmd = &cobra.Command{
-	Use:   "startClient",
-	Short: "starts the Silent Assassin client",
-	Long: `startClient starts the Silent Assassin client which runs on a
-	kubernetes node and notifies Silent Assassin server when it recieves preemption
-	notification`,
+var clientCmd = &cobra.Command{
+	Use:   "client",
+	Short: "starts silent-assassin client",
+
+	Long: ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		sigChan := make(chan os.Signal)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -28,7 +27,7 @@ var startClientCmd = &cobra.Command{
 		configProvider := config.Init(cfgFile)
 		zapLogger := logger.Init(configProvider)
 
-		pns := client.NewPreemptionNotificationService(zapLogger, configProvider)
+		pns := informer.NewInformerService(zapLogger, configProvider)
 		wg.Add(1)
 		go pns.Start(ctx, wg)
 		<-sigChan
@@ -37,9 +36,10 @@ var startClientCmd = &cobra.Command{
 		cancelFn()
 		wg.Wait()
 		zapLogger.Info("Shut down completed successfully")
+
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(startClientCmd)
+	startCmd.AddCommand(clientCmd)
 }

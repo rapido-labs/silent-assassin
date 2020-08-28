@@ -30,7 +30,8 @@ func (s *SpotterTestSuite) SetupTest() {
 	s.notifierMock = new(notifier.NotifierClientMock)
 	s.notifierMock.On("Info", mock.Anything, mock.Anything)
 	s.notifierMock.On("Error", mock.Anything, mock.Anything)
-	s.configMock.On("GetString", mock.Anything).Return("debug")
+	s.configMock.On("GetString", "label_selectors").Return("cloud.google.com/gke-preemptible=true,label2=test")
+	s.configMock.On("GetString", "logger.level").Return("info")
 	s.configMock.On("GetInt", "spotter.poll_interval_ms").Return(10)
 	s.configMock.On("SplitStringToSlice", "spotter.label_selectors", config.CommaSeparater).Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
 
@@ -39,8 +40,9 @@ func (s *SpotterTestSuite) SetupTest() {
 
 func (suite *SpotterTestSuite) TestShouldFetchNodesWithLabels() {
 
-	suite.configMock.On("SplitStringToSlice", config.SpotterWhiteListIntervalHours, config.CommaSeparater).Return([]string{"00:00-06:00", "12:00-14:00"})
-	suite.k8sMock.On("GetNodes", []string{"cloud.google.com/gke-preemptible=true,label2=test"}).Return(&v1.NodeList{})
+	suite.configMock.On("SplitStringToSlice", "spotter.white_list_interval_hours", ",").Return([]string{"00:00-06:00", "12:00-14:00"})
+	suite.configMock.On("GetString", "label_selectors").Return("cloud.google.com/gke-preemptible=true,label2=test")
+	suite.k8sMock.On("GetNodes", "cloud.google.com/gke-preemptible=true,label2=test").Return(&v1.NodeList{})
 
 	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock, suite.notifierMock)
 	ss.initWhitelist()
@@ -63,7 +65,7 @@ func (suite *SpotterTestSuite) TestShouldAnnotateIfAbsent() {
 		Items: []v1.Node{nodeAlreadyAnnotated, nodeToBeAnnotated},
 	}
 	suite.k8sMock.On("GetNodes", mock.Anything).Return(&nodeList)
-	suite.k8sMock.On("AnnotateNode", mock.MatchedBy(func(input v1.Node) bool {
+	suite.k8sMock.On("UpdateNode", mock.MatchedBy(func(input v1.Node) bool {
 
 		_, found := input.ObjectMeta.Annotations["silent-assassin/expiry-time"]
 		if !found {

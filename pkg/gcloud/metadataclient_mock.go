@@ -1,4 +1,4 @@
-package metadataclient
+package gcloud
 
 import (
 	"github.com/stretchr/testify/mock"

@@ -12,7 +12,7 @@ type GCloudClient struct {
 }
 
 type IGCloudClient interface {
-	DeleteNode(projectID, zone, name string) error
+	DeleteInstance(projectID, zone, name string) error
 }
 
 func NewClient() (IGCloudClient, error) {
@@ -36,7 +36,7 @@ func NewClient() (IGCloudClient, error) {
 	return gClient, err
 }
 
-func (client GCloudClient) DeleteNode(projectID, zone, name string) error {
+func (client GCloudClient) DeleteInstance(projectID, zone, name string) error {
 	_, err := client.Service.Instances.Delete(projectID, zone, name).Context(context.Background()).Do()
 	return err
 }
