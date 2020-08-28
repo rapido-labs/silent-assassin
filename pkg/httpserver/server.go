@@ -7,9 +7,19 @@ import (
 	"sync"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/roppenlabs/silent-assassin/pkg/config"
 	"github.com/roppenlabs/silent-assassin/pkg/killer"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
+)
+
+var (
+	nodesPreempted = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "nodes_preempted",
+		Help: "The total number of preemptions",
+	})
 )
 
 type Server struct {
@@ -21,7 +31,6 @@ type Server struct {
 
 //NewHttpServer creates new server.
 func New(cp config.IProvider, zapLogger logger.IZapLogger, ks killer.KillerService) *Server {
-
 	host := fmt.Sprintf("%s:%d", cp.GetString(config.ServerHost), cp.GetInt32(config.ServerPort))
 
 	srv := &http.Server{
@@ -46,6 +55,7 @@ func (s *Server) Start(ctx context.Context, wg *sync.WaitGroup) {
 func (s *Server) setRoutes() {
 	router := mux.NewRouter()
 	router.HandleFunc(config.EvacuatePodsURI, s.handleTermination).Methods(http.MethodPost)
+	router.Path(config.Metrics).Handler(promhttp.Handler())
 	s.apiServer.Handler = router
 }
 
@@ -54,7 +64,6 @@ func (s *Server) listenServer() {
 		s.logger.Error(fmt.Sprintf("Error starting server: %s", err.Error()))
 		panic(err.Error())
 	}
-	fmt.Println(s.apiServer.Handler)
 }
 
 func (s *Server) waitForShutdown(ctx context.Context, wg *sync.WaitGroup) {

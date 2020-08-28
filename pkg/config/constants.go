@@ -4,6 +4,7 @@ const KubernetesRunMode = "kubernetes.run_mode"
 
 const ServerHost = "server_host"
 const ServerPort = "server_port"
+const Metrics = "/metrics"
 
 const NodeSelectors = "label_selectors"
 const ExpiryTimeAnnotation = "silent-assassin/expiry-time"
