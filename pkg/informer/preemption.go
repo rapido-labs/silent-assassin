@@ -99,7 +99,7 @@ func (pns InformerService) informPreemption(nodeName string) {
 
 	b := bytes.NewBuffer(data)
 
-	preemptionURI := fmt.Sprintf("%s%s", pns.cp.GetString(config.EvacuatePodsURI), pns.cp.GetString(config.ServerHost))
+	preemptionURI := fmt.Sprintf("%s%s", pns.cp.GetString(config.ServerHost), config.EvacuatePodsURI)
 	req, err := http.NewRequest(http.MethodPost, preemptionURI, b)
 	if err != nil {
 		panic(err.Error())

@@ -2,6 +2,7 @@ package config
 
 const KubernetesRunMode = "kubernetes.run_mode"
 
+const ServerListenHost = "server_listen_host"
 const ServerHost = "server_host"
 const ServerPort = "server_port"
 const Metrics = "/metrics"

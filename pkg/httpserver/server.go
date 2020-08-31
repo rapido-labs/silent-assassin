@@ -31,7 +31,7 @@ type Server struct {
 
 //NewHttpServer creates new server.
 func New(cp config.IProvider, zapLogger logger.IZapLogger, ks killer.KillerService) *Server {
-	host := fmt.Sprintf("%s:%d", cp.GetString(config.ServerHost), cp.GetInt32(config.ServerPort))
+	host := fmt.Sprintf("%s:%d", cp.GetString(config.ServerListenHost), cp.GetInt32(config.ServerPort))
 
 	srv := &http.Server{
 		Addr: host,
