@@ -42,7 +42,7 @@ func (suite *SpotterTestSuite) TestShouldFetchNodesWithLabels() {
 
 	suite.configMock.On("SplitStringToSlice", "spotter.white_list_interval_hours", ",").Return([]string{"00:00-06:00", "12:00-14:00"})
 	suite.configMock.On("GetString", "label_selectors").Return("cloud.google.com/gke-preemptible=true,label2=test")
-	suite.k8sMock.On("GetNodes", "cloud.google.com/gke-preemptible=true,label2=test").Return(&v1.NodeList{})
+	suite.k8sMock.On("GetNodes", "cloud.google.com/gke-preemptible=true,label2=test").Return(&v1.NodeList{}, nil)
 
 	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock, suite.notifierMock)
 	ss.initWhitelist()
@@ -64,7 +64,7 @@ func (suite *SpotterTestSuite) TestShouldAnnotateIfAbsent() {
 	nodeList := v1.NodeList{
 		Items: []v1.Node{nodeAlreadyAnnotated, nodeToBeAnnotated},
 	}
-	suite.k8sMock.On("GetNodes", mock.Anything).Return(&nodeList)
+	suite.k8sMock.On("GetNodes", mock.Anything).Return(&nodeList, nil)
 	suite.k8sMock.On("UpdateNode", mock.MatchedBy(func(input v1.Node) bool {
 
 		_, found := input.ObjectMeta.Annotations["silent-assassin/expiry-time"]

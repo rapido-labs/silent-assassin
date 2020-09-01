@@ -33,6 +33,7 @@ const SlackChannel = "slack.channel"
 const SlackIconURL = "slack.slack_icon_url"
 const SlackTimeoutMs = "slack.slack_timeout"
 
+const EventGetNodes = "GET_NODES"
 const EventAnnotate = "ANNOTATE"
 const EventDrain = "DRAIN"
 const EventCordon = "CORDON"

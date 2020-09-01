@@ -22,9 +22,14 @@ func getExpiryTime(node v1.Node) string {
 
 //findExpiredTimeNodes gets the list of nodes whose expiry time set is older than current time
 //These nodes are eligible for deletion.
-func (ks KillerService) findExpiredTimeNodes(labelSelector string) []v1.Node {
-	nodeList := ks.kubeClient.GetNodes(labelSelector)
-	nodesToBeDeleted := make([]v1.Node, 0)
+func (ks KillerService) findExpiredTimeNodes(labelSelector string) ([]v1.Node, error) {
+	var nodesToBeDeleted []v1.Node
+	nodeList, err := ks.kubeClient.GetNodes(labelSelector)
+	if err != nil {
+		ks.logger.Error(fmt.Sprintf("Error getting nodes %s", err.Error()))
+		ks.notifier.Error(config.EventGetNodes, fmt.Sprintf("Error fetching nodes %s", err.Error()))
+		return nodesToBeDeleted, err
+	}
 
 	now := time.Now().UTC()
 
@@ -48,7 +53,7 @@ func (ks KillerService) findExpiredTimeNodes(labelSelector string) []v1.Node {
 
 	}
 
-	return nodesToBeDeleted
+	return nodesToBeDeleted, nil
 }
 
 //makeNodeUnschedulable function cordons the node thus disabling scheduling of

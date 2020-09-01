@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (kc KubernetesClient) GetNodes(labelSelector string) *v1.NodeList {
+func (kc KubernetesClient) GetNodes(labelSelector string) (*v1.NodeList, error) {
 
 	kc.logger.Debug(fmt.Sprintf("Label Selectors : %v", labelSelector))
 
@@ -18,10 +18,10 @@ func (kc KubernetesClient) GetNodes(labelSelector string) *v1.NodeList {
 
 	if err != nil {
 		kc.logger.Info("Failed to get nodes")
-		panic(err)
+		return nodes, err
 	}
 
-	return nodes
+	return nodes, err
 }
 
 func (kc KubernetesClient) GetNode(name string) (v1.Node, error) {

@@ -9,9 +9,9 @@ type K8sClientMock struct {
 	mock.Mock
 }
 
-func (m *K8sClientMock) GetNodes(labelSelector string) *v1.NodeList {
+func (m *K8sClientMock) GetNodes(labelSelector string) (*v1.NodeList, error) {
 	args := m.Called(labelSelector)
-	return args.Get(0).(*v1.NodeList)
+	return args.Get(0).(*v1.NodeList), args.Error(1)
 }
 
 func (m *K8sClientMock) GetNode(name string) (v1.Node, error) {
