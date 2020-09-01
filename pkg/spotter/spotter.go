@@ -58,8 +58,13 @@ func getNodeDetails(node v1.Node) string {
 }
 
 func (ss spotterService) spot() {
-	nodes := ss.kubeClient.GetNodes(ss.cp.GetString(config.NodeSelectors))
+	nodes, err := ss.kubeClient.GetNodes(ss.cp.GetString(config.NodeSelectors))
 
+	if err != nil {
+		ss.logger.Error(fmt.Sprintf("Error getting nodes %s", err.Error()))
+		ss.notifier.Error(config.EventGetNodes, fmt.Sprintf("Error getting nodes %s", err.Error()))
+		return
+	}
 	ss.logger.Debug(fmt.Sprintf("Fetched %d node(s)", len(nodes.Items)))
 
 	for _, node := range nodes.Items {

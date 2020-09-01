@@ -58,7 +58,11 @@ func (ks KillerService) Start(ctx context.Context, wg *sync.WaitGroup) {
 
 func (ks KillerService) kill() {
 
-	nodesToDelete := ks.findExpiredTimeNodes(ks.cp.GetString(config.NodeSelectors))
+	nodesToDelete, err := ks.findExpiredTimeNodes(ks.cp.GetString(config.NodeSelectors))
+
+	if err != nil {
+		return
+	}
 
 	ks.logger.Debug(fmt.Sprintf("Number of nodes to kill %d", len(nodesToDelete)))
 	for _, node := range nodesToDelete {
