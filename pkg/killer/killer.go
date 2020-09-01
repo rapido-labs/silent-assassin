@@ -6,11 +6,20 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/roppenlabs/silent-assassin/pkg/config"
 	"github.com/roppenlabs/silent-assassin/pkg/gcloud"
 	"github.com/roppenlabs/silent-assassin/pkg/k8s"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
 	"github.com/roppenlabs/silent-assassin/pkg/notifier"
+)
+
+var (
+	nodesKilled = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "nodes_killed",
+		Help: "The total number of nodes killed when they reach their expiry time",
+	})
 )
 
 type KillerService struct {
@@ -55,6 +64,7 @@ func (ks KillerService) kill() {
 	for _, node := range nodesToDelete {
 		ks.logger.Info(fmt.Sprintf("Processing node %s", node.Name))
 
+		nodesKilled.Inc()
 		if err := ks.EvacuatePodsFromNode(node.Name, ks.cp.GetUint32(config.KillerDrainingTimeoutWhenNodeExpiredMs), false); err != nil {
 			ks.logger.Error(fmt.Sprintf("Error evacuating node:%s, %s", node.Name, err.Error()))
 			continue
