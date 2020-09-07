@@ -53,7 +53,7 @@ spec:
         - name: {{ .Release.Name }}
           image: {{ .Values.image }}
           command: ["/bin/sh"]
-          args: ["-c", "cd /layers/golang/app/; ./silent-assassin startClient"]
+          args: ["-c", "cd /layers/golang/app/; ./silent-assassin start client"]
           imagePullPolicy: {{ .Values.imageConfig.pullPolicy }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:

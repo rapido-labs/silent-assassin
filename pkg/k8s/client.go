@@ -21,12 +21,11 @@ type KubernetesClient struct {
 }
 
 type IKubernetesClient interface {
-	GetNodes(labels []string) *v1.NodeList
+	GetNodes(labelSelector string) (*v1.NodeList, error)
 	GetNode(name string) (v1.Node, error)
 	GetPodsInNode(name string) ([]v1.Pod, error)
 	DeletePod(name, namespace string) error
 	DeleteNode(name string) error
-	AnnotateNode(node v1.Node) error
 	UpdateNode(node v1.Node) error
 }
 

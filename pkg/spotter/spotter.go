@@ -11,6 +11,7 @@ import (
 	"github.com/roppenlabs/silent-assassin/pkg/k8s"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
 	"github.com/roppenlabs/silent-assassin/pkg/notifier"
+	v1 "k8s.io/api/core/v1"
 )
 
 type spotterService struct {
@@ -49,15 +50,27 @@ func (ss spotterService) Start(ctx context.Context, wg *sync.WaitGroup) {
 	}
 }
 
-func (ss spotterService) spot() {
-	nodes := ss.kubeClient.GetNodes(ss.cp.SplitStringToSlice(config.SpotterNodeSelectors, config.CommaSeparater))
+func getNodeDetails(node v1.Node) string {
+	return fmt.Sprintf("Node: %s\n"+
+		"Creation Time: %s\n"+
+		"ExpiryTime: %s",
+		node.Name, node.CreationTimestamp, node.Annotations[config.ExpiryTimeAnnotation])
+}
 
+func (ss spotterService) spot() {
+	nodes, err := ss.kubeClient.GetNodes(ss.cp.GetString(config.NodeSelectors))
+
+	if err != nil {
+		ss.logger.Error(fmt.Sprintf("Error getting nodes %s", err.Error()))
+		ss.notifier.Error(config.EventGetNodes, fmt.Sprintf("Error getting nodes %s", err.Error()))
+		return
+	}
 	ss.logger.Debug(fmt.Sprintf("Fetched %d node(s)", len(nodes.Items)))
 
 	for _, node := range nodes.Items {
 		nodeAnnotations := node.GetAnnotations()
 
-		if _, ok := nodeAnnotations[config.SpotterExpiryTimeAnnotation]; ok {
+		if _, ok := nodeAnnotations[config.ExpiryTimeAnnotation]; ok {
 			continue
 		}
 		if nodeAnnotations == nil {
@@ -65,20 +78,20 @@ func (ss spotterService) spot() {
 		}
 		expiryTime := ss.getExpiryTimestamp(node)
 		ss.logger.Debug(fmt.Sprintf("spot() : Node = %v Creation Time = [ %v ] Expirty Time [ %v ]", node.Name, node.GetCreationTimestamp(), expiryTime))
-		nodeAnnotations[config.SpotterExpiryTimeAnnotation] = expiryTime
+		nodeAnnotations[config.ExpiryTimeAnnotation] = expiryTime
 
 		node.SetAnnotations(nodeAnnotations)
-		err := ss.kubeClient.AnnotateNode(node)
-		nodeDetail := fmt.Sprintf("Node: %s\nCreation Time: %s\nExpiryTime: %s", node.Name, node.CreationTimestamp, node.Annotations[config.SpotterExpiryTimeAnnotation])
+		err := ss.kubeClient.UpdateNode(node)
+		nodeDetails := getNodeDetails(node)
 
 		if err != nil {
 			ss.logger.Error(fmt.Sprintf("Failed to annotate node : %s", node.ObjectMeta.Name))
-			ss.notifier.Error("ANNOTATE", fmt.Sprintf("%s\nError:%s", nodeDetail, err.Error()))
+			ss.notifier.Error(config.EventAnnotate, fmt.Sprintf("%s\nError:%s", nodeDetails, err.Error()))
 			continue
 		}
-		ss.logger.Info(fmt.Sprintf("Annotated node : %s", node.ObjectMeta.Name))
 
-		ss.notifier.Info("ANNOTATE", nodeDetail)
+		ss.logger.Info(fmt.Sprintf("Annotated node : %s", node.ObjectMeta.Name))
+		ss.notifier.Info(config.EventAnnotate, nodeDetails)
 
 	}
 

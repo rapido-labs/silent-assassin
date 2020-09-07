@@ -1,4 +1,4 @@
-package metadataclient
+package gcloud
 
 import "cloud.google.com/go/compute/metadata"
 

@@ -11,6 +11,7 @@ pipelines:
       environment: development
       namespace: andromeda
       app: silent-assassin
+      buildMode: buildpack
   silent-assassin-staging:
     group: devops
     materials:
@@ -22,6 +23,7 @@ pipelines:
       environment: staging
       namespace: andromeda
       app: silent-assassin
+      buildMode: buildpack
   silent-assassin-production:
     group: devops
     materials:
@@ -33,3 +35,4 @@ pipelines:
       environment: production
       namespace: andromeda
       app: silent-assassin
+      buildMode: buildpack
