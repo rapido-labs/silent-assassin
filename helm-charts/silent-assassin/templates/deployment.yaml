@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: {{ .Release.Name }}
   labels:
-    chart: {{ .Release.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app: {{ .Release.Name }}
     team: {{ .Values.team }}
 spec:
