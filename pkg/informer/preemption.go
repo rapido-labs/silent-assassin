@@ -143,6 +143,7 @@ func (pns InformerService) Start(ctx context.Context, wg *sync.WaitGroup) {
 		case termination := <-pns.watch():
 			if termination {
 				pns.informPreemption(nodeName)
+				return
 			}
 		}
 	}
