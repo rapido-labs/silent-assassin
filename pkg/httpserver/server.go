@@ -61,8 +61,7 @@ func (s *Server) setRoutes() {
 
 func (s *Server) listenServer() {
 	if err := s.apiServer.ListenAndServe(); err != nil {
-		s.logger.Error(fmt.Sprintf("Error starting server: %s", err.Error()))
-		panic(err.Error())
+		s.logger.Error(fmt.Sprintf("Server exiting: %s", err.Error()))
 	}
 }
 

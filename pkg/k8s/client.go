@@ -2,7 +2,6 @@ package k8s
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -39,11 +38,11 @@ func NewClient(cp config.IProvider, zl logger.IZapLogger) KubernetesClient {
 	case "OutCluster":
 		kubeConfig = getOutClusterConfig()
 	default:
-		panic(fmt.Sprintf("No cluster mode specified in %v", config.KubernetesRunMode))
+		zl.Info("No cluster mode selected. Configuring InCluster mode by default.")
+		kubeConfig = getInclusterConfig()
 	}
 
 	clientset, err := kubernetes.NewForConfig(kubeConfig)
-
 	if err != nil {
 		panic(err.Error())
 	}

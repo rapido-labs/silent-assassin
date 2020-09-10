@@ -106,7 +106,8 @@ func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRando
 				CreationTimestamp: metav1.NewTime(creationTimestamp),
 				Annotations:       map[string]string{"node.alpha.kubernetes.io/ttl": "0"}}}
 
-		saExpTime, _ := time.Parse(time.RFC1123Z, ss.getExpiryTimestamp(nodeToBeAnnotated))
+		saExpTimeString, _ := ss.getExpiryTimestamp(nodeToBeAnnotated)
+		saExpTime, _ := time.Parse(time.RFC1123Z, saExpTimeString)
 
 		assert.True(suite.T(), verifyNodeExpiry(saExpTime, testInput.EligibleWLs), fmt.Sprintf("SA_Expiry time =[ %v ] didn't fall within one of the eligible WL interval = [ %v ] for Node = %v", saExpTime, testInput.EligibleWLs, testInput.NodeName))
 	}
@@ -123,8 +124,8 @@ func (suite *SpotterTestSuite) TestShouldReturnETinSameTimeZoneAsCT() {
 			Name:              "Node-IST",
 			CreationTimestamp: metav1.NewTime(creationTime),
 			Annotations:       map[string]string{"node.alpha.kubernetes.io/ttl": "0"}}}
-
-	saExpTime, _ := time.Parse(time.RFC1123Z, ss.getExpiryTimestamp(nodeToBeAnnotated))
+	saExpTimeString, _ := ss.getExpiryTimestamp(nodeToBeAnnotated)
+	saExpTime, _ := time.Parse(time.RFC1123Z, saExpTimeString)
 
 	assert.True(suite.T(), saExpTime.Location() == creationTime.Location(), "CT and ET TimeZone does not match")
 
