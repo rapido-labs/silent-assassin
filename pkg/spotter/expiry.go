@@ -1,6 +1,7 @@
 package spotter
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -85,7 +86,7 @@ func randomMinuntes(t1, t2 time.Time) time.Duration {
 	return time.Duration(randMins)
 }
 
-func (ss *spotterService) getExpiryTimestamp(node v1.Node) string {
+func (ss *spotterService) getExpiryTimestamp(node v1.Node) (string, error) {
 
 	creationTsUTC := node.GetCreationTimestamp().Time.UTC()
 
@@ -122,7 +123,7 @@ func (ss *spotterService) getExpiryTimestamp(node v1.Node) string {
 	}
 
 	if len(eligibleExpiryTimes) == 0 {
-		panic("Cannot find a date")
+		return "", errors.New("Cannot find a date")
 	}
 
 	saExpirtyTime := eligibleExpiryTimes[rand.Intn(len(eligibleExpiryTimes))]
@@ -131,9 +132,9 @@ func (ss *spotterService) getExpiryTimestamp(node v1.Node) string {
 	finalexp := midnight(creationTsUTC).Add(saExpirtyTime.Sub(whitelistStart))
 
 	if finalexp.After(actualExpiry) {
-		panic("The Expiry time we calculated is after Actual Expiry Time :facepalm")
+		return "", errors.New("The Expiry time we calculated is after Actual Expiry Time :facepalm")
 	}
 	finalexp = finalexp.In(node.GetCreationTimestamp().Time.Location())
 	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Final Expiry = [ %v ]", node.Name, finalexp))
-	return finalexp.Format(time.RFC1123Z)
+	return finalexp.Format(time.RFC1123Z), nil
 }

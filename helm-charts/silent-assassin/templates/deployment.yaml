@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: {{ .Release.Name }}
   labels:
-    chart: {{ .Release.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app: {{ .Release.Name }}
     team: {{ .Values.team }}
 spec:
@@ -38,7 +38,7 @@ spec:
             - "-vault-addr"
             - "{{.Values.vault.host}}:{{.Values.vault.port}}"
             - "-template"
-            - "/usr/app/templates/application.yaml:/layers/golang/app/config/.silent-assassin.yaml"
+            - "/usr/app/templates/application.yaml:/layers/golang/app/config/application.yaml"
             - "-once"
             - "-log-level=trace"
           volumeMounts:
@@ -49,6 +49,8 @@ spec:
       containers:
         - name: {{ .Release.Name }}
           image: {{ .Values.image }}
+          command: ["/bin/sh"]
+          args: ["-c", "cd /layers/golang/app/; ./silent-assassin start server"]
           imagePullPolicy: {{ .Values.imageConfig.pullPolicy }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:

@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/roppenlabs/silent-assassin/pkg/config"
 	"github.com/roppenlabs/silent-assassin/pkg/gcloud"
+	"github.com/roppenlabs/silent-assassin/pkg/httpserver"
 	"github.com/roppenlabs/silent-assassin/pkg/k8s"
 	"github.com/roppenlabs/silent-assassin/pkg/killer"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
@@ -18,13 +19,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var startCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Starts the killer",
-	Long: `Starts the killer. It has 2 components. One to assign the expiry time to preemtible nodes and one to
-	gracefully kill the nodes which have outlived the expiry time.`,
-	Run: func(cmd *cobra.Command, args []string) {
+var serverCmd = &cobra.Command{
+	Use:   "server",
+	Short: "starts silent assassin server",
 
+	Long: ``,
+	Run: func(cmd *cobra.Command, args []string) {
 		sigChan := make(chan os.Signal)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		wg := &sync.WaitGroup{}
@@ -34,11 +34,12 @@ var startCmd = &cobra.Command{
 		zapLogger := logger.Init(configProvider)
 		kubeClient := k8s.NewClient(configProvider, zapLogger)
 		gcloudClient, err := gcloud.NewClient()
+
 		if err != nil {
 			zapLogger.Error(fmt.Sprintf("Error creating gcloud client: %s", err.Error()))
 		}
 
-		ns := notifier.NewNotifier(configProvider, zapLogger)
+		ns := notifier.NewNotificationService(configProvider, zapLogger)
 		wg.Add(1)
 		go ns.Start(ctx, wg)
 
@@ -50,8 +51,9 @@ var startCmd = &cobra.Command{
 		wg.Add(1)
 		go ks.Start(ctx, wg)
 
+		server := httpserver.New(configProvider, zapLogger, ks)
 		wg.Add(1)
-		go ks.StartServer(ctx, wg)
+		go server.Start(ctx, wg)
 
 		<-sigChan
 
@@ -63,5 +65,5 @@ var startCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(startCmd)
+	startCmd.AddCommand(serverCmd)
 }

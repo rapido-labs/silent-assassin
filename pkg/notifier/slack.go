@@ -1,43 +1,52 @@
 package notifier
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/roppenlabs/silent-assassin/pkg/config"
+	"github.com/roppenlabs/silent-assassin/pkg/utils"
 )
 
 //Slack contains information about slack webhook
 type Slack struct {
-	url      string
-	username string
-	channel  string
-	iconURL  string
+	url            string
+	username       string
+	channel        string
+	iconURL        string
+	messageTimeout uint32
+	httpClient     utils.IHTTPClient
 }
 
 //SlackPayload holds the channel and Attachments
-type SlackPayload struct {
+type slackPayload struct {
 	Channel     string            `json:"channel"`
 	Username    string            `json:"username"`
 	IconURL     string            `json:"icon_url"`
-	Attachments []SlackAttachment `json:"attachments,omitempty"`
+	Attachments []slackAttachment `json:"attachments,omitempty"`
 }
 
 //SlackAttachment is sds
-type SlackAttachment struct {
+type slackAttachment struct {
 	Severity severity     `json:"color"`
-	Blocks   []SlackBlock `json:"blocks,omitempty"`
+	Blocks   []slackBlock `json:"blocks,omitempty"`
 }
 
 //SlackBlock holds the markdown message body.
-type SlackBlock struct {
+type slackBlock struct {
 	BlockType string     `json:"type"`
-	Text      *SlackText `json:"text,omitempty"`
+	Text      *slackText `json:"text,omitempty"`
 }
 
 //SlackText asdsad
-type SlackText struct {
+type slackText struct {
 	TextType string `json:"type"`
 	Text     string `json:"text"`
 }
@@ -49,6 +58,7 @@ func NewSlackClient(cp config.IProvider) (Slack, error) {
 	username := cp.GetString(config.SlackUsername)
 	channel := cp.GetString(config.SlackChannel)
 	iconURL := cp.GetString(config.SlackIconURL)
+	messageTimeout := cp.GetUint32(config.SlackTimeoutMs)
 
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
@@ -62,54 +72,94 @@ func NewSlackClient(cp config.IProvider) (Slack, error) {
 		return slack, errors.New("empty Slack channel")
 	}
 
+	if messageTimeout == 0 {
+		messageTimeout = 2000
+	}
+
+	httpClient := http.DefaultClient
+
 	return Slack{
-		url:      hookURL,
-		username: username,
-		channel:  fmt.Sprintf("#%s", channel),
-		iconURL:  iconURL,
+		url:            hookURL,
+		username:       username,
+		channel:        fmt.Sprintf("#%s", channel),
+		iconURL:        iconURL,
+		httpClient:     httpClient,
+		messageTimeout: messageTimeout,
 	}, nil
 }
 
 //createPayload creates request payload for slack webhook
-func (s Slack) createPayload(severity severity, title, details string) SlackPayload {
-	titleBlock := SlackBlock{
+func (s Slack) createPayload(severity severity, title, details string) slackPayload {
+	titleBlock := slackBlock{
 		BlockType: "section",
-		Text: &SlackText{
+		Text: &slackText{
 			TextType: "mrkdwn",
 			Text:     fmt.Sprintf("*:bell: %s*", title),
 		},
 	}
-	detailText := &SlackText{
+	detailText := &slackText{
 		TextType: "mrkdwn",
 		Text:     fmt.Sprintf("```%s```", details),
 	}
 
-	detailBlock := SlackBlock{
+	detailBlock := slackBlock{
 		BlockType: "section",
 		Text:      detailText,
 	}
 
-	attachment := SlackAttachment{
-		Blocks:   []SlackBlock{titleBlock, detailBlock},
+	attachment := slackAttachment{
+		Blocks:   []slackBlock{titleBlock, detailBlock},
 		Severity: severity,
 	}
-	payload := SlackPayload{
+	payload := slackPayload{
 		Channel:     s.channel,
 		Username:    s.username,
 		IconURL:     s.iconURL,
-		Attachments: []SlackAttachment{attachment},
-		// Blocks:   []SlackBlock{titleBlock, detailBlock},
+		Attachments: []slackAttachment{attachment},
 	}
 
 	return payload
 
 }
 
-//push sends the notificatio to Slack webhook
+//postMessage posts request message to the given URL
+func (s Slack) postMessage(address string, payload interface{}) error {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshalling notification payload failed: %w", err)
+	}
+
+	b := bytes.NewBuffer(data)
+
+	req, err := http.NewRequest(http.MethodPost, address, b)
+	if err != nil {
+		return fmt.Errorf("http NewRequest failed: %w", err)
+	}
+	req.Header.Set("Content-type", "application/json")
+
+	ctx, cancel := context.WithTimeout(req.Context(), time.Duration(s.messageTimeout)*time.Millisecond)
+	defer cancel()
+
+	res, err := s.httpClient.Do(req.WithContext(ctx))
+	if err != nil {
+		return fmt.Errorf("sending notification failed: %w", err)
+	}
+
+	defer res.Body.Close()
+	statusCode := res.StatusCode
+	if statusCode != http.StatusOK {
+		body, _ := ioutil.ReadAll(res.Body)
+		return fmt.Errorf("Sending notification failed: %s", string(body))
+	}
+
+	return nil
+}
+
+//push implements Provider interface. Sends the notification to Slack webhook.
 func (s Slack) push(severity severity, title, details string) error {
 
 	payload := s.createPayload(severity, title, details)
-	err := postMessage(s.url, payload)
+	err := s.postMessage(s.url, payload)
 
 	return err
 }

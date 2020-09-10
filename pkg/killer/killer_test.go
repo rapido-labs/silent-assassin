@@ -48,11 +48,11 @@ func (k *KillerTestSuite) TestShouldReturnExpiredNodes() {
 	nodeList := v1.NodeList{
 		Items: []v1.Node{preemptibleNodeExpired, preemptibleNodeNotExpired}}
 
-	k.k8sMock.On("GetNodes", []string{"cloud.google.com/gke-preemptible=true,label2=test"}).Return(&nodeList)
+	k.k8sMock.On("GetNodes", "cloud.google.com/gke-preemptible=true,label2=test").Return(&nodeList, nil)
 
 	ks := NewKillerService(k.configMock, k.logger, k.k8sMock, k.gCloudMock, k.notifierMock)
 
-	nodelist := ks.findExpiredTimeNodes([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
+	nodelist, _ := ks.findExpiredTimeNodes("cloud.google.com/gke-preemptible=true,label2=test")
 
 	assert.Contains(k.T(), nodelist, preemptibleNodeExpired, "Node-1 should be returned")
 	assert.NotContains(k.T(), nodelist, preemptibleNodeNotExpired, "Node-2 should not be returned")
@@ -73,28 +73,6 @@ func (k *KillerTestSuite) TestShouldFilterPodsByReferenceKind() {
 
 	assert.Contains(k.T(), filteredPodList, podOwnedByRS)
 	assert.NotContains(k.T(), filteredPodList, podOwnedByDS)
-}
-
-func (k *KillerTestSuite) TestShouldWaitforDrainingOfnodesWithTimeout() {
-	nodeName := "node-1"
-	pod1 := v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod-1", OwnerReferences: []metav1.OwnerReference{{Kind: "ReplicaSet"}}}}
-	pod2 := v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod-2"}}
-	pod3 := v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod-3"}}
-	pod4 := v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod-4"}}
-
-	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1, pod2, pod3, pod4}, nil).After(1000 * time.Millisecond).Once()
-	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1, pod2, pod3}, nil).After(1000 * time.Millisecond).Once()
-	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1, pod2}, nil).After(1000 * time.Millisecond).Once()
-	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1}, nil).After(1000 * time.Millisecond).Once()
-	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{}, nil).After(1000 * time.Millisecond).Once()
-
-	ks := NewKillerService(k.configMock, k.logger, k.k8sMock, k.gCloudMock, k.notifierMock)
-	assert.Nil(k.T(), ks.waitforDrainToFinish(nodeName, 5000), "err should be nothing")
-
-	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1}, nil).After(2000 * time.Millisecond).Once()
-
-	assert.NotNil(k.T(), ks.waitforDrainToFinish(nodeName, 1000), "error should be something")
-	k.k8sMock.AssertExpectations(k.T())
 }
 
 func TestKillerTestSuite(t *testing.T) {

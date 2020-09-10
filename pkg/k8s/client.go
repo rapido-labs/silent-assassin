@@ -2,7 +2,6 @@ package k8s
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -21,12 +20,11 @@ type KubernetesClient struct {
 }
 
 type IKubernetesClient interface {
-	GetNodes(labels []string) *v1.NodeList
+	GetNodes(labelSelector string) (*v1.NodeList, error)
 	GetNode(name string) (v1.Node, error)
 	GetPodsInNode(name string) ([]v1.Pod, error)
 	DeletePod(name, namespace string) error
 	DeleteNode(name string) error
-	AnnotateNode(node v1.Node) error
 	UpdateNode(node v1.Node) error
 }
 
@@ -40,11 +38,11 @@ func NewClient(cp config.IProvider, zl logger.IZapLogger) KubernetesClient {
 	case "OutCluster":
 		kubeConfig = getOutClusterConfig()
 	default:
-		panic(fmt.Sprintf("No cluster mode specified in %v", config.KubernetesRunMode))
+		zl.Info("No cluster mode selected. Configuring InCluster mode by default.")
+		kubeConfig = getInclusterConfig()
 	}
 
 	clientset, err := kubernetes.NewForConfig(kubeConfig)
-
 	if err != nil {
 		panic(err.Error())
 	}

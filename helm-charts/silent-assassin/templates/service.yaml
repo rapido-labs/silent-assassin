@@ -3,8 +3,8 @@ kind: Service
 metadata:
   name: {{ .Release.Name }}
   labels:
-    chart: {{ .Release.Name }}-{{ .Chart.Version | replace "+" "_" }}
-    team: {{ .Values.team }}
+    app: {{ .Release.Name | quote }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -12,4 +12,4 @@ spec:
     port: {{ .Values.service.servicePort }}
     targetPort: {{ .Values.containerPort }}
   selector:
-    app: {{ .Release.Name }}
+    app: {{ .Release.Name | quote }}
