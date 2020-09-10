@@ -76,14 +76,19 @@ func (ss spotterService) spot() {
 		if nodeAnnotations == nil {
 			nodeAnnotations = make(map[string]string, 0)
 		}
-		expiryTime := ss.getExpiryTimestamp(node)
+
+		nodeDetails := getNodeDetails(node)
+		expiryTime, err := ss.getExpiryTimestamp(node)
+		if err != nil {
+			ss.logger.Error(fmt.Sprintf("Coluld not get expiry time %s", err.Error()))
+			ss.notifier.Error(config.EventAnnotate, fmt.Sprintf("%s\nError:%s", nodeDetails, err.Error()))
+			continue
+		}
 		ss.logger.Debug(fmt.Sprintf("spot() : Node = %v Creation Time = [ %v ] Expirty Time [ %v ]", node.Name, node.GetCreationTimestamp(), expiryTime))
 		nodeAnnotations[config.ExpiryTimeAnnotation] = expiryTime
 
 		node.SetAnnotations(nodeAnnotations)
-		err := ss.kubeClient.UpdateNode(node)
-		nodeDetails := getNodeDetails(node)
-
+		err = ss.kubeClient.UpdateNode(node)
 		if err != nil {
 			ss.logger.Error(fmt.Sprintf("Failed to annotate node : %s", node.ObjectMeta.Name))
 			ss.notifier.Error(config.EventAnnotate, fmt.Sprintf("%s\nError:%s", nodeDetails, err.Error()))
