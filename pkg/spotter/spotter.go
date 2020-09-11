@@ -96,7 +96,7 @@ func (ss spotterService) spot() {
 		}
 
 		ss.logger.Info(fmt.Sprintf("Annotated node : %s", node.ObjectMeta.Name))
-		ss.notifier.Info(config.EventAnnotate, nodeDetails)
+		ss.notifier.Info(config.EventAnnotate, getNodeDetails(node))
 
 	}
 
