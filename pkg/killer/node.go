@@ -121,7 +121,7 @@ func getProjectIDAndZoneFromNode(node v1.Node) (string, string) {
 }
 
 func (ks KillerService) deleteNode(node v1.Node) {
-	nodeDetails := getNodeDetails(node, true)
+	nodeDetails := getNodeDetails(node, false)
 
 	// Delete the k8s node
 	ks.logger.Info(fmt.Sprintf("Deleting node %s", node.Name))
