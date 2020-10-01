@@ -71,10 +71,6 @@ spec:
             initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
           {{- end }}
-          ports:
-            - containerPort: {{ .Values.containerPort }}
-              name: http
-              protocol: TCP
           {{- if .Values.resources }}
           resources:
             requests:
