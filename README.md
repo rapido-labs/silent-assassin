@@ -13,6 +13,7 @@ Because of these limitations, GCP recommends using PVMs for short-lived jobs and
 
 SA solves the problem of mass deletion (Problem 1) by deleting the VMs randomly after 12 hours and before 24 hours of its creation, during non-business hours. It solves the 2nd problem, which is the unpredicted loss of pods due to early preemption, by triggering a drain through kubernetes in the event of a preemption.
 
+This tool is inspired by two projects aimed at solving the above problems [estafette-gke-preemption-killer](https://github.com/estafette/estafette-gke-preemptible-killer) and [k8s-node-termination-handler](https://github.com/GoogleCloudPlatform/k8s-node-termination-handler). We wanted to make alterations to the above projects ans combine the functionalities into one tool. So we build SA.
 
 
 ## Installation
@@ -68,37 +69,23 @@ gcloud container node-pools update $NODEPOOL_NAME \
 ```
 helm install --name <Relese_Name> --namespace <namespace> ./helm-charts/silent-assassin
 ```
+## Archicture
+The architecture of SA is breifly explained [here](https://github.com/roppenlabs/silent-assassin/tree/AddingDocs/docs).
+
+## Deployments.
+
+How to plan for nodepools and pod affinity is explained [here](https://github.com/roppenlabs/silent-assassin/tree/AddingDocs/docs/nodepools-and-deployment.md).
 
 ## Disaster Recovery
 
-What if all preemptive nodes start misbehaving. There is a possibility that all preemptive compute instances might get preempted at once. How should we handle such scenario?
-
-You could use the below steps in such cases.
-
-1. Disable Auto Scaling in the preemptive node-pool
-2. Cordon all nodes in the preemptive node-pool.
-3. Shift the pods from preemptive nodepool to the back up on demand nodepool. The shift can be perfromed by rolling restart of the deployments or manual restart of the pods.
-4. Set number of nodes in the preemptible nodepool to 0 or delete the nodepool.
-
-Below is the example for *istio-gateway* nodepool.
-
-We have two node pools for *istio-gateway* workloads. ***istio-gateway-p-1*** a preemptible nodepool and ***istio-gateway-2*** an on-demand nodepool which acts as a backup nodepool.
-
-1. Go to GCP console, edit **istio-gateway-p-1** nodepool and disable auto scaling manually, currently gcloud commandline does not support for disabling autoscaling.
-
-2. Cordon preemptive nodes.
-```
-    kubectl cordon -l cloud.google.com/gke-preemptible=true,component=istio-gateway
-```
-3. Restart all pods running on preemptive nodes.
-```
-    kubectl rollout restart deployment istio-ingressgateway
-```
-4. Set number of nodes of  ***istio-gateway-p-1*** to 0 or delete the nodepool.
+What are the steps to recover pending pods when GCP goes out of Preemptible resources? It is explained [here](https://github.com/roppenlabs/silent-assassin/tree/AddingDocs/docs/disaster-recovery.md).
 
 
-### Development
-
+## Development
+You can build the code using below command.
 ```
 go build -o silent-assassin cmd/silent-assassin/*.go
 ```
+## Contribution
+If you find any issues in using this project, you can raise issues.This project is [Apache 2.0 licensed](https://github.com/roppenlabs/silent-assassin/tree/AddingDocs/LICENSE) and accept contributions via GitHub pull requests.
+You can contribute to this project by raising issues and
