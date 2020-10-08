@@ -1,6 +1,6 @@
 # Silent-assassin
 
-Silent-Assassin (SA) is a project built to solve the problems of using Preemptible Virtual Machines(PVM) in Production environment.
+**Silent-Assassin(SA)** is a project built to solve the problems of using Preemptible Virtual Machines(PVM) in Production environment.
 PVMs are unused VMs in GCP, that come at 1/4th of the cost of regular on demand VMs. While the cost part is sweet, they have two limitations.
 
 1) **They last a maximum of 24 hours**
@@ -52,7 +52,7 @@ $ export K8S_SERVICE_ACCOUNT=<.Release.Name> #This is the [service account](helm
 $ gcloud iam service-accounts add-iam-policy-binding   --role roles/iam.workloadIdentityUser   --member "serviceAccount:${PROJECT_ID}.svc.id.goog[${NAMESPACE}/$SERVICE_ACCOUNT]" $SERVICE_ACCOUNT@${PROJECT_ID}.iam.gserviceaccount.com --project=${PROJECT_ID}
 ```
 
-Node-pools created after enabling WLI in the cluster can use WLI, but not the old nodepools. If you are planning to deploy SA in a node-pool that was created before WLI was enabled, migrate it to use WLI. See [link](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) for more details.
+Node-pools created after enabling WLI in the cluster can use WLI, but not the old nodepools. If you are planning to deploy SA in a node-pool that was created before WLI was enabled, migrate it to use WLI. See this [link](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) for more details.
 
 ```
 export NODEPOOL_NAME=<nodepool-name>
