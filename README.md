@@ -22,7 +22,7 @@ SA would also use workload identity to access GCP and delete PVMs, so workload i
 You can refer the steps for enabling WLI in the cluster [here](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#enable_on_cluster).
 
 ### Authentication using workload identity
-Create a service account and give the compute.instances.delete permissions.
+Create a service account and give  **compute.instances.delete** permission.
 
 ```
 $ export PROJECT_ID=<PROJECT>
@@ -45,7 +45,7 @@ $ gcloud projects add-iam-policy-binding $PROJECT_ID \
     --role=projects/${PROJECT_ID}/roles/computeInstanceDelete
 ```
 
-After creation of service-account using above steps, we need to associate k8s service account that we use in the SA deployment with the GCP service account.
+After creation of the service-account using above steps, we need to associate k8s service account that we use in the SA deployment with the GCP service account.
 
 ```
 $ export NAMESPACE=<namespace_of_k8s_service_account>
@@ -53,7 +53,7 @@ $ export K8S_SERVICE_ACCOUNT=<.Release.Name> #This is the [service account](helm
 $ gcloud iam service-accounts add-iam-policy-binding   --role roles/iam.workloadIdentityUser   --member "serviceAccount:${PROJECT_ID}.svc.id.goog[${NAMESPACE}/$SERVICE_ACCOUNT]" $SERVICE_ACCOUNT@${PROJECT_ID}.iam.gserviceaccount.com --project=${PROJECT_ID}
 ```
 
-Node-pools created after enabling WLI in the cluster can use WLI, but not the old nodepools. If you are planning to deploy SA in a node-pool that was created before WLI was enabled, migrate it to use WLI. See this [link](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) for more details.
+Node-pools created after enabling WLI in the cluster can use WLI, but not the old node-pools. If you are planning to deploy SA in a node-pool that was created before WLI was enabled, migrate it to use WLI. See this [link](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) for more details.
 
 ```
 export NODEPOOL_NAME=<nodepool-name>
