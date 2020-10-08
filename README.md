@@ -13,7 +13,7 @@ Because of these limitations, GCP recommends using PVMs for short-lived jobs and
 
 SA solves the problem of mass deletion (Problem 1) by deleting the VMs randomly after 12 hours and before 24 hours of its creation, during non-business hours. It solves the 2nd problem, which is the unpredicted loss of pods due to early preemption, by triggering a drain through kubernetes in the event of a preemption.
 
-This tool is inspired by two projects aimed at solving the above problems [estafette-gke-preemption-killer](https://github.com/estafette/estafette-gke-preemptible-killer) and [k8s-node-termination-handler](https://github.com/GoogleCloudPlatform/k8s-node-termination-handler). We wanted to make alterations to the above projects ans combine the functionalities into one tool. So we build SA.
+This tool is inspired by two projects aimed at solving the above problems [estafette-gke-preemption-killer](https://github.com/estafette/estafette-gke-preemptible-killer) and [k8s-node-termination-handler](https://github.com/GoogleCloudPlatform/k8s-node-termination-handler). We wanted to make alterations to the above projects ans combine the functionalities into one tool. So we built SA.
 
 
 ## Installation
@@ -87,4 +87,4 @@ You can build the code using below command.
 go build -o silent-assassin cmd/silent-assassin/*.go
 ```
 ## Contribution
-If you find any issues in using this project, you can raise issues.This project is [Apache 2.0 licensed](https://github.com/roppenlabs/silent-assassin/tree/AddingDocs/LICENSE) and accept contributions via GitHub pull requests.
+If you find any issues in using this project, you can raise issues.This project is [Apache 2.0 licensed](https://github.com/roppenlabs/silent-assassin/tree/AddingDocs/LICENSE) and we accept contributions via GitHub pull requests.
