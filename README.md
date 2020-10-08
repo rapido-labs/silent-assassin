@@ -78,7 +78,7 @@ How to plan for nodepools and pod affinity is explained [here](https://github.co
 
 ## Disaster Recovery
 
-What are the steps to recover pending pods when GCP goes out of Preemptible resources? It is explained [here](https://github.com/roppenlabs/silent-assassin/tree/AddingDocs/docs/disaster-recovery.md).
+What are the steps to perform when PVMs misbehave? It is explained [here](https://github.com/roppenlabs/silent-assassin/tree/AddingDocs/docs/disaster-recovery.md).
 
 
 ## Development
@@ -88,4 +88,3 @@ go build -o silent-assassin cmd/silent-assassin/*.go
 ```
 ## Contribution
 If you find any issues in using this project, you can raise issues.This project is [Apache 2.0 licensed](https://github.com/roppenlabs/silent-assassin/tree/AddingDocs/LICENSE) and accept contributions via GitHub pull requests.
-You can contribute to this project by raising issues and
