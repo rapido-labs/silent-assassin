@@ -49,7 +49,7 @@ After creation of the service-account using above steps, we need to associate k8
 
 ```
 $ export NAMESPACE=<namespace_of_k8s_service_account>
-$ export K8S_SERVICE_ACCOUNT=<.Release.Name> #This is the [service account](helm-chart link) used in SA deployment. You can set the name as the helm relese name
+$ export K8S_SERVICE_ACCOUNT=<.Release.Name> #This is the service account(helm-charts/templates/service-account.yaml) used in SA deployment. You can set the name as the helm relese name
 $ gcloud iam service-accounts add-iam-policy-binding   --role roles/iam.workloadIdentityUser   --member "serviceAccount:${PROJECT_ID}.svc.id.goog[${NAMESPACE}/$SERVICE_ACCOUNT]" $SERVICE_ACCOUNT@${PROJECT_ID}.iam.gserviceaccount.com --project=${PROJECT_ID}
 ```
 
