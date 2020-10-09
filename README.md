@@ -70,15 +70,15 @@ gcloud container node-pools update $NODEPOOL_NAME \
 helm install --name <Relese_Name> --namespace <namespace> ./helm-charts/silent-assassin
 ```
 ## Archicture
-The architecture of SA is breifly explained [here](https://github.com/roppenlabs/silent-assassin/tree/AddingDocs/docs).
+The architecture of SA is breifly explained [here](docs).
 
 ## Deployments.
 
-How to plan for nodepools and pod affinity is explained [here](https://github.com/roppenlabs/silent-assassin/tree/AddingDocs/docs/nodepools-and-deployment.md).
+How to plan for nodepools and pod affinity is explained [here](docs/nodepools-and-deployment.md).
 
 ## Disaster Recovery
 
-What are the steps to perform when PVMs misbehave? It is explained [here](https://github.com/roppenlabs/silent-assassin/tree/AddingDocs/docs/disaster-recovery.md).
+What are the steps to perform when PVMs misbehave? It is explained [here](docs/disaster-recovery.md).
 
 
 ## Development
@@ -87,4 +87,4 @@ You can build the code using below command.
 go build -o silent-assassin cmd/silent-assassin/*.go
 ```
 ## Contribution
-If you find any issues in using this project, you can raise issues.This project is [Apache 2.0 licensed](https://github.com/roppenlabs/silent-assassin/tree/AddingDocs/LICENSE) and we accept contributions via GitHub pull requests.
+If you find any issues in using this project, you can raise issues.This project is [Apache 2.0 licensed](LICENSE) and we accept contributions via GitHub pull requests.
