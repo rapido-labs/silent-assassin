@@ -1,0 +1,37 @@
+apiVersion: v1
+data:
+  application.yaml: |
+    SERVER_LISTEN_HOST: 0.0.0.0
+    SERVER_HOST: {{ .Release.Name | quote }}
+    SERVER_PORT: 8080
+    LABEL_SELECTORS: {{ .Values.silent_assassin.node_selectors }}
+
+    SPOTTER:
+      POLL_INTERVAL_MS: {{ .Values.silent_assassin.spotter.poll_interval_ms }}
+      WHITE_LIST_INTERVAL_HOURS: {{ .Values.silent_assassin.spotter.white_list_interval_hours }}
+
+    KILLER:
+      POLL_INTERVAL_MS: {{ .Values.silent_assassin.killer.poll_interval_ms }}
+      DRAINING_TIMEOUT_WHEN_NODE_EXPIRED_MS: {{ .Values.silent_assassin.killer.draining_timeout_when_node_expired_ms }}
+      DRAINING_TIMEOUT_WHEN_NODE_PREEMPTED_MS: {{ .Values.silent_assassin.killer.draining_timeout_when_node_preempted_ms }}
+
+    LOGGER:
+      LEVEL:{{ .Values.silent_assassin.logger_level }}
+
+    KUBERNETES:
+      RUN_MODE: {{ .Values.silent_assassin.k8s_run_mode }}
+
+    SLACK:
+      WEBHOOK_URL:  {{ .Values.silent_assassin.slack.webhook_url }}
+      USERNAME: {{ .Values.silent_assassin.slack.username }}
+      CHANNEL: {{ .Values.silent_assassin.slack.channel }}
+      SLACK_ICON_URL: {{ .Values.silent_assassin.slack.icon_url }}
+
+    CLIENT:
+      SERVER_RETRIES: {{ .Values.silent_assassin.client.server_retries }}
+      WATCH_MAINTAINANCE_EVENTS: {{ .Values.silent_assassin.client.watch_maintainance_event }}
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels:
+    team: {{ .Values.team }}

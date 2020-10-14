@@ -4,75 +4,26 @@ version: 1.0
 replicaCount: 1
 revisionHistoryLimit: 4
 containerPort: 8080
-environment: development
-team: devops
 imageConfig:
   pullPolicy: Always
+  image: rapidolabs/silent-assassin:1.0.0
 
 resources:
   enabled: true
   requests:
-    cpu: 200m
-    memory: 200Mi
+    cpu: 20m
+    memory: 20Mi
   limits:
-    cpu: 2
-    memory: 2048Mi
-
-livenessProbe:
-  enabled: false
-  path: /health
-  initialDelaySeconds: 10
-  periodSeconds: 5
-
-readinessProbe:
-  enabled: false
-  path: /health
-  initialDelaySeconds: 10
-  periodSeconds: 5
+    cpu: 100m
+    memory: 100Mi
 
 service:
   type: ClusterIP
   servicePort: 80
 
-hpa:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 6
-  metrics:
-    cpu:
-      enabled: true
-      targetAverageUtilization: 90
-    memory:
-      enabled: true
-      targetAverageUtilization: 90
-
-istio:
-  virtualService:
-    enabled: false
-  ingressGateway:
-  - istio-system/istio-internal-gateway
-  - mesh
-
-consul:
-  host: http://consul-consul-server.configuration.svc.cluster.local
-  port: 8500
-vault:
-  host: http://rapido-vault-vault.configuration.svc.cluster.local
-  port: 8200
-
-affinity:
-  nodeAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: cloud.google.com/gke-nodepool
-          operator: In
-          values:
-          - services
-
 # when using workload identity set this to the Google Cloud Service Account
 workloadIdentityServiceAccount:
-  enabled: false
+  enabled: true
   name: ""
 
 secret:
@@ -83,3 +34,25 @@ secret:
   # sets a json keyfile for a gcp service account
   # this value will be ignored if workloadIdentityServiceAccount is enabled.
   googleServiceAccountKeyfileJson: '{"type": "service_account"}'
+
+silent_assassin:
+  node_selectors: "cloud.google.com/gke-preemptible=true"
+  # debug | info | warn | error
+  logger_level: "info"
+  # InCluster | OutCluster
+  k8s_run_mode: InCluster
+  spotter:
+    poll_interval_ms: 1000
+    white_list_interval_hours: "06:30-08:30,18:30-00:30"
+  killer:
+    poll_interval_ms: 1000
+    draining_timeout_when_node_expired_ms: 300000
+    draining_timeout_when_node_preempted_ms: 25000
+  slack:
+    webhook_url: ""
+    username: "SILENT-ASSASSIN"
+    channel: ""
+    SLACK_ICON_URL: ""
+  client:
+    server_retries: 4
+    watch_maintainance_event: true
