@@ -98,3 +98,5 @@ daemonset:
       memory: 20Mi
   livenessProbe:
     enabled: false
+  readinessProbe:
+    enabled: false
