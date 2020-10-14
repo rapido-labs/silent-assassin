@@ -83,3 +83,20 @@ secret:
   # sets a json keyfile for a gcp service account
   # this value will be ignored if workloadIdentityServiceAccount is enabled.
   googleServiceAccountKeyfileJson: '{"type": "service_account"}'
+
+canary:
+  enabled: false
+
+daemonset:
+  resources:
+    enabled: true
+    requests:
+      cpu: 10m
+      memory: 10Mi
+    limits:
+      cpu: 20m
+      memory: 20Mi
+  livenessProbe:
+    enabled: false
+  readinessProbe:
+    enabled: false
