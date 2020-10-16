@@ -5,7 +5,6 @@ metadata:
   labels:
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     app: {{ .Release.Name }}
-    team: {{ .Values.team }}
 spec:
   selector:
     matchLabels:
@@ -20,54 +19,14 @@ spec:
       labels:
         app: {{ .Release.Name }}
         version: {{ .Values.version | quote }}
-        team: {{ .Values.team }}
     spec:
       serviceAccountName: {{ .Release.Name }}
-      initContainers:
-        - name: install
-          image: hashicorp/consul-template:0.20.0-alpine
-          env:
-            - name: VAULT_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: vault-secret
-                  key: token
-          args:
-            - "-consul-addr"
-            - "{{ .Values.consul.host}}:{{ .Values.consul.port}}"
-            - "-vault-addr"
-            - "{{.Values.vault.host}}:{{.Values.vault.port}}"
-            - "-template"
-            - "/usr/app/templates/application.yaml:/layers/golang/app/config/application.yaml"
-            - "-once"
-            - "-log-level=trace"
-          volumeMounts:
-            - mountPath: /usr/app/templates
-              name: config-template-volume
-            - mountPath: /layers/golang/app/config
-              name: config-pv-volume
       containers:
         - name: {{ .Release.Name }}
-          image: {{ .Values.image }}
+          image: {{ .Values.imageConfig.image }}
           command: ["/bin/sh"]
           args: ["-c", "cd /layers/golang/app/; ./silent-assassin start server"]
           imagePullPolicy: {{ .Values.imageConfig.pullPolicy }}
-          {{- if .Values.livenessProbe.enabled }}
-          livenessProbe:
-            httpGet:
-              path: {{ .Values.livenessProbe.path }}
-              port: {{ .Values.containerPort }}
-            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.livenessProbe.periodSeconds}}
-          {{- end }}
-          {{- if .Values.readinessProbe.enabled }}
-          readinessProbe:
-            httpGet:
-              path: {{ .Values.readinessProbe.path }}
-              port: {{ .Values.containerPort }}
-            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
-          {{- end }}
           ports:
             - containerPort: {{ .Values.containerPort }}
               name: http
@@ -82,23 +41,19 @@ spec:
               memory: {{ .Values.resources.limits.memory }}
           {{- end }}
           env:
-            - name: RAPIDO_ENV
-              value: {{ .Values.environment }}
             {{- if not .Values.workloadIdentityServiceAccount.enabled }}
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: /gcp-service-account/service-account-key.json
             {{- end }}
           volumeMounts:
             - mountPath: /layers/golang/app/config
-              name: config-pv-volume
+              name: configuration
           {{- if not .Values.workloadIdentityServiceAccount.enabled }}
             - name: gcp-service-account-secret
               mountPath: /gcp-service-account
           {{- end }}
       volumes:
-        - name: config-pv-volume
-          emptyDir: {}
-        - name: config-template-volume
+        - name: configuration
           configMap:
             name: {{ .Release.Name }}-config
         {{- if not .Values.workloadIdentityServiceAccount.enabled }}
