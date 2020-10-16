@@ -17,6 +17,22 @@ resources:
     cpu: 100m
     memory: 100Mi
 
+daemonset:
+  resources:
+    enabled: true
+    requests:
+      cpu: 10m
+      memory: 10Mi
+    limits:
+      cpu: 20m
+      memory: 20Mi
+  livenessProbe:
+    enabled: false
+  readinessProbe:
+    enabled: false
+
+    
+
 service:
   type: ClusterIP
   servicePort: 80

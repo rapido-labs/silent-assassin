@@ -30,14 +30,30 @@ spec:
           command: ["/bin/sh"]
           args: ["-c", "cd /layers/golang/app/; ./silent-assassin start client"]
           imagePullPolicy: {{ .Values.imageConfig.pullPolicy }}
-          {{- if .Values.resources }}
+          {{- if .Values.daemonset.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.daemonset.livenessProbe.path }}
+              port: {{ .Values.daemonset.containerPort }}
+            initialDelaySeconds: {{ .Values.daemonset.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.daemonset.livenessProbe.periodSeconds}}
+          {{- end }}
+          {{- if .Values.daemonset.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.daemonset.readinessProbe.path }}
+              port: {{ .Values.daemonset.containerPort }}
+            initialDelaySeconds: {{ .Values.daemonset.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.daemonset.readinessProbe.periodSeconds }}
+          {{- end }}
+          {{- if .Values.daemonset.resources }}
           resources:
             requests:
-              cpu: {{ .Values.resources.requests.cpu }}
-              memory: {{ .Values.resources.requests.memory }}
+              cpu: {{ .Values.daemonset.resources.requests.cpu }}
+              memory: {{ .Values.daemonset.resources.requests.memory }}
             limits:
-              cpu: {{ .Values.resources.limits.cpu }}
-              memory: {{ .Values.resources.limits.memory }}
+              cpu: {{ .Values.daemonset.resources.limits.cpu }}
+              memory: {{ .Values.daemonset.resources.limits.memory }}
           {{- end }}
           volumeMounts:
             - mountPath: /layers/golang/app/config
