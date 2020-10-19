@@ -3,6 +3,7 @@ out
 build-state.json
 build.json
 cover.out
+coverage-all.out
 golang/
 skaffold.yaml
 coverage.out

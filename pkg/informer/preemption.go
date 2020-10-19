@@ -85,7 +85,7 @@ func (pns InformerService) watch() <-chan bool {
 	return pns.pendingTermination
 }
 
-//Request silent-assassin server of the preemption for graceful deleteion of pods in the node
+//Inform silent-assassin server of the preemption for graceful deletion of the pods in the node
 func (pns InformerService) informPreemption(nodeName string) {
 	pns.logger.Info(fmt.Sprintf("Calling Server to drain the node %s", nodeName))
 
