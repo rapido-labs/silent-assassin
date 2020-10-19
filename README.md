@@ -82,9 +82,12 @@ What are the steps to perform when PVMs misbehave? It is explained [here](docs/d
 
 
 ## Development
-You can build the code using below command.
+
+Building from source.
+
 ```
-go build -o silent-assassin cmd/silent-assassin/*.go
+make all
 ```
+
 ## Contribution
 If you find any issues in using this project, you can raise issues.This project is [Apache 2.0 licensed](LICENSE) and we accept contributions via GitHub pull requests.
