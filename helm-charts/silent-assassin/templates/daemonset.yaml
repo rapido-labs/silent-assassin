@@ -30,22 +30,6 @@ spec:
           command: ["/bin/sh"]
           args: ["-c", "cd /layers/golang/app/; ./silent-assassin start client"]
           imagePullPolicy: {{ .Values.imageConfig.pullPolicy }}
-          {{- if .Values.daemonset.livenessProbe.enabled }}
-          livenessProbe:
-            httpGet:
-              path: {{ .Values.daemonset.livenessProbe.path }}
-              port: {{ .Values.daemonset.containerPort }}
-            initialDelaySeconds: {{ .Values.daemonset.livenessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.daemonset.livenessProbe.periodSeconds}}
-          {{- end }}
-          {{- if .Values.daemonset.readinessProbe.enabled }}
-          readinessProbe:
-            httpGet:
-              path: {{ .Values.daemonset.readinessProbe.path }}
-              port: {{ .Values.daemonset.containerPort }}
-            initialDelaySeconds: {{ .Values.daemonset.readinessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.daemonset.readinessProbe.periodSeconds }}
-          {{- end }}
           {{- if .Values.daemonset.resources }}
           resources:
             requests:

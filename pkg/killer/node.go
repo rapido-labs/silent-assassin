@@ -137,7 +137,7 @@ func (ks KillerService) deleteNode(node v1.Node) {
 	projectID, zone := getProjectIDAndZoneFromNode(node)
 	ks.logger.Info(fmt.Sprintf("Deletig google instance %s", node.Name))
 	if err := ks.gcloudClient.DeleteInstance(projectID, zone, node.Name); err != nil {
-		ks.logger.Error(fmt.Sprintf("Could not kill the node %s", node.Name))
+		ks.logger.Error(fmt.Sprintf("Could not kill the node %s %s", node.Name, err.Error()))
 		ks.notifier.Error(config.EventDeleteInstance, fmt.Sprintf("%s\nError:%s", nodeDetails, err.Error()))
 		return
 	}

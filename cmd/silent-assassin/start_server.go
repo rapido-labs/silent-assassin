@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -33,11 +32,7 @@ var serverCmd = &cobra.Command{
 		configProvider := config.Init(cfgFile)
 		zapLogger := logger.Init(configProvider)
 		kubeClient := k8s.NewClient(configProvider, zapLogger)
-		gcloudClient, err := gcloud.NewClient()
-
-		if err != nil {
-			zapLogger.Error(fmt.Sprintf("Error creating gcloud client: %s", err.Error()))
-		}
+		gcloudClient := gcloud.NewClient()
 
 		ns := notifier.NewNotificationService(configProvider, zapLogger)
 		wg.Add(1)

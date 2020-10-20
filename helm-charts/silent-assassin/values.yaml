@@ -6,7 +6,7 @@ revisionHistoryLimit: 4
 containerPort: 8080
 imageConfig:
   pullPolicy: Always
-  image: rapidolabs/silent-assassin:1.0.0
+  image: rapidolabs/silent-assassin:latest
 
 resources:
   enabled: true
@@ -26,12 +26,8 @@ daemonset:
     limits:
       cpu: 20m
       memory: 20Mi
-  livenessProbe:
-    enabled: false
-  readinessProbe:
-    enabled: false
 
-    
+affinity: {}
 
 service:
   type: ClusterIP
@@ -40,16 +36,16 @@ service:
 # when using workload identity set this to the Google Cloud Service Account
 workloadIdentityServiceAccount:
   enabled: true
-  name: ""
+  email: ""
 
 secret:
   # if set to true the values are already base64 encoded when provided, otherwise the template performs the base64 encoding
   # this value will be ignored if workloadIdentityServiceAccount is enabled.
   valuesAreBase64Encoded: false
 
-  # sets a json keyfile for a gcp service account
+  # sets a json keyfile for a gcp service account. Add contnent of json key file with no new lines.
   # this value will be ignored if workloadIdentityServiceAccount is enabled.
-  googleServiceAccountKeyfileJson: '{"type": "service_account"}'
+  googleServiceAccountKeyfileJson: '{"type": "service_account","project_id":".."}'
 
 silent_assassin:
   node_selectors: "cloud.google.com/gke-preemptible=true"
@@ -68,7 +64,7 @@ silent_assassin:
     webhook_url: ""
     username: "SILENT-ASSASSIN"
     channel: ""
-    SLACK_ICON_URL: ""
+    icon_url: ""
   client:
     server_retries: 4
     watch_maintainance_event: true
