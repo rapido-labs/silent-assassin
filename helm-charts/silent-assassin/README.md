@@ -52,7 +52,7 @@ We have shortned `silent-assassin` to `sa` in last few rows as the long name was
 | `service.type`                                         | Service Type                                                  | `ClusterIP`                                |
 | `service.servicePort`                                  | Service Port                                                  | `80`                                       |
 | `workloadIdentityServiceAccount.enabled`               | Workload identity is enabled in cluster                       | `true`                                     |
-| `workloadIdentityServiceAccount.email`                 | GCP email for WLI (required)                                  | ``                                         |
+| `workloadIdentityServiceAccount.email`                 | Email of GCP SA created for for WLI (required)                | ``                                         |
 | `secret.valuesAreBase64Encoded`                        | Encode contents of secret                                     | `false`                                    |
 | `secret.googleServiceAccountKeyfileJson`               | Content of GCP service account key file without new lines     | `{"type":"service_account","project_id".}` |
 | `affinity`                                             | Map of node/pod affinities                                    | `{}`                                       |

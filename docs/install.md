@@ -33,6 +33,7 @@ gcloud iam service-accounts keys create key.json \
   --iam-account ${$SERVICE_ACCOUNT_EMAIL}
 
 ```
+Keep the `key.json` file safely. We have to use the content of the file as value for parameter `secret.googleServiceAccountKeyfileJson` in helm chart.
 
 ### Authentication using workload identity
 Enable workload identintity in the cluster.
@@ -80,6 +81,8 @@ gcloud container node-pools update $NODEPOOL_NAME \
   --workload-metadata=GKE_METADATA
   --region $REGION
  ```
+
+Use the email id as the value for parameter `workloadIdentityServiceAccount.email` in helm chart.
 
 ### Installation using Helm.
 Follow this [link](../helm-charts/silent-assassin/) for details on installation using helm.
