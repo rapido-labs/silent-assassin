@@ -18,6 +18,9 @@ jobs:
       with:
         go-version: ^1.13
       id: go
+    
+    - name: Setup timezone
+      run: sudo timedatectl set-timezone Asia/Kolkata
 
     - name: Check out code
       uses: actions/checkout@v2
