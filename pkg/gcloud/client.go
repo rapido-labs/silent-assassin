@@ -15,25 +15,25 @@ type IGCloudClient interface {
 	DeleteInstance(projectID, zone, name string) error
 }
 
-func NewClient() (IGCloudClient, error) {
+func NewClient() IGCloudClient {
 	var gClient IGCloudClient
 
 	client, err := google.DefaultClient(context.Background(), compute.ComputeScope)
 	if err != nil {
-		return gClient, err
+		panic(err.Error())
 	}
 
 	service, err := compute.New(client)
 
 	if err != nil {
-		return gClient, err
+		return gClient
 	}
 
 	gClient = GCloudClient{
 		Service: service,
 	}
 
-	return gClient, err
+	return gClient
 }
 
 func (client GCloudClient) DeleteInstance(projectID, zone, name string) error {

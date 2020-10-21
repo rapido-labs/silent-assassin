@@ -43,7 +43,7 @@ spec:
           env:
             {{- if not .Values.workloadIdentityServiceAccount.enabled }}
             - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: /gcp-service-account/service-account-key.json
+              value: "/gcp-service-account/service-account-key.json"
             {{- end }}
           volumeMounts:
             - mountPath: /layers/golang/app/config
