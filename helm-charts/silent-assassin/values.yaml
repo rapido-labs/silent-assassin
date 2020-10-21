@@ -6,7 +6,7 @@ revisionHistoryLimit: 4
 containerPort: 8080
 imageConfig:
   pullPolicy: Always
-  image: rapidolabs/silent-assassin:latest
+  image: rapidolabs/silent-assassin:1.0.0-d20f93a
 
 resources:
   enabled: true
