@@ -1,4 +1,4 @@
-# Silent-assassin
+# Silent-Assassin
 
 **Silent-Assassin(SA)** is a project built to solve the problems of using Preemptible Virtual Machines(PVM) in Production environment.
 PVMs are unused VMs in GCP, that come at 1/4th of the cost of regular on demand VMs. While the cost part is sweet, they have two limitations.
@@ -16,13 +16,13 @@ SA solves the problem of mass deletion (Problem 1) by deleting the VMs randomly 
 This tool is inspired by two projects aimed at solving the above problems [estafette-gke-preemption-killer](https://github.com/estafette/estafette-gke-preemptible-killer) and [k8s-node-termination-handler](https://github.com/GoogleCloudPlatform/k8s-node-termination-handler). We wanted to make alterations to the above projects ans combine the functionalities into one tool. So we built SA.
 
 
-## Archicture
+## Architecture
 The architecture of SA is breifly explained [here](docs).
 
 ## Installation
 
 Steps to enable authentication to GCP and install using helm-chart is explained [here](docs/install.md).
-## Deployments.
+## Managing Workloads
 
 How to plan for nodepools and pod affinity is explained [here](docs/nodepools-and-deployment.md).
 
