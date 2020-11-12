@@ -21,6 +21,11 @@ const KillerPollIntervalMs = "killer.poll_interval_ms"
 const KillerDrainingTimeoutWhenNodeExpiredMs = "killer.draining_timeout_when_node_expired_ms"
 const KillerDrainingTimeoutWhenNodePreemptedMs = "killer.draining_timeout_when_node_preempted_ms"
 
+const ShifterPollIntervalMs = "shifter.poll_interval_ms"
+const ShifterWhiteListIntervalHours = "shifter.white_list_interval_hours"
+const ShifterNPResizeTimeout = "shifter.np_resize_timeout_mins"
+const ShifterSleepAfterNodeDeletionMs = "shifter.sleep_after_node_deletion_ms"
+
 const ClientServerRetries = "client.server_retries"
 const ClientWatchMaintainanceEvents = "client.watch_maintainance_events"
 
@@ -39,6 +44,8 @@ const EventDrain = "DRAIN"
 const EventCordon = "CORDON"
 const EventDeleteNode = "DELETE NODE"
 const EventDeleteInstance = "DELETE INSTANCE"
+const EventShift = "SHIFT"
+const EvenetResizeNodePool = "REESIZE_NP"
 
 const CommaSeparater = ","
 
