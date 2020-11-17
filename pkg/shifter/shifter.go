@@ -36,13 +36,14 @@ type ShifterService struct {
 	whiteListIntervals []wlInterval
 }
 
-func NewShifterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, gc gcloud.IGCloudClient, nf notifier.INotifierClient) ShifterService {
+func NewShifterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, gc gcloud.IGCloudClient, nf notifier.INotifierClient, kl killer.KillerService) ShifterService {
 	return ShifterService{
 		cp:           cp,
 		logger:       zl,
 		kubeClient:   kc,
 		gcloudClient: gc,
 		notifier:     nf,
+		killer:       kl,
 	}
 }
 
