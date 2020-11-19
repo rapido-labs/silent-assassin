@@ -22,6 +22,10 @@ var (
 	})
 )
 
+type IKiller interface {
+	EvacuatePodsFromNode(name string, timeout uint32, preemption bool) error
+	Start(ctx context.Context, wg *sync.WaitGroup)
+}
 type KillerService struct {
 	cp           config.IProvider
 	logger       logger.IZapLogger

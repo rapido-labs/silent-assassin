@@ -24,24 +24,24 @@ type SpotterTestSuite struct {
 	notifierMock *notifier.NotifierClientMock
 }
 
-func (s *SpotterTestSuite) SetupTest() {
-	s.configMock = new(config.ProviderMock)
-	s.k8sMock = new(k8s.K8sClientMock)
-	s.notifierMock = new(notifier.NotifierClientMock)
-	s.notifierMock.On("Info", mock.Anything, mock.Anything)
-	s.notifierMock.On("Error", mock.Anything, mock.Anything)
-	s.configMock.On("GetString", "label_selectors").Return("cloud.google.com/gke-preemptible=true,label2=test")
-	s.configMock.On("GetString", "logger.level").Return("info")
-	s.configMock.On("GetInt", "spotter.poll_interval_ms").Return(10)
-	s.configMock.On("SplitStringToSlice", "spotter.label_selectors", config.CommaSeparater).Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
+func (suit *SpotterTestSuite) SetupTest() {
+	suit.configMock = new(config.ProviderMock)
+	suit.k8sMock = new(k8s.K8sClientMock)
+	suit.notifierMock = new(notifier.NotifierClientMock)
+	suit.notifierMock.On("Info", mock.Anything, mock.Anything)
+	suit.notifierMock.On("Error", mock.Anything, mock.Anything)
+	suit.configMock.On("GetString", config.NodeSelectors).Return("cloud.google.com/gke-preemptible=true,label2=test")
+	suit.configMock.On("GetString", config.LogLevel).Return("info")
+	suit.configMock.On("GetInt", config.SpotterPollIntervalMs).Return(10)
+	suit.configMock.On("SplitStringToSlice", config.NodeSelectors, config.CommaSeparater).Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
 
-	s.logger = logger.Init(s.configMock)
+	suit.logger = logger.Init(suit.configMock)
 }
 
 func (suite *SpotterTestSuite) TestShouldFetchNodesWithLabels() {
 
-	suite.configMock.On("SplitStringToSlice", "spotter.white_list_interval_hours", ",").Return([]string{"00:00-06:00", "12:00-14:00"})
-	suite.configMock.On("GetString", "label_selectors").Return("cloud.google.com/gke-preemptible=true,label2=test")
+	suite.configMock.On("SplitStringToSlice", config.SpotterWhiteListIntervalHours, ",").Return([]string{"00:00-06:00", "12:00-14:00"})
+	suite.configMock.On("GetString", config.NodeSelectors).Return("cloud.google.com/gke-preemptible=true,label2=test")
 	suite.k8sMock.On("GetNodes", "cloud.google.com/gke-preemptible=true,label2=test").Return(&v1.NodeList{}, nil)
 
 	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock, suite.notifierMock)

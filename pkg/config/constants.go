@@ -45,7 +45,7 @@ const EventCordon = "CORDON"
 const EventDeleteNode = "DELETE NODE"
 const EventDeleteInstance = "DELETE INSTANCE"
 const EventShift = "SHIFT"
-const EvenetResizeNodePool = "REESIZE_NP"
+const EventResizeNodePool = "RESIZE_NP"
 
 const CommaSeparater = ","
 

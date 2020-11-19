@@ -27,7 +27,7 @@ func (ss *ShifterService) initWhitelist() {
 			ss.logger.Error(fmt.Sprintf("Shifter: Error parsing WhiteList Start time Reason: %v", err))
 			panic(err)
 		}
-		ss.logger.Info(fmt.Sprintf("Print time %v", times[1]))
+
 		end, err := time.Parse(timeLayout, times[1])
 		if err != nil {
 			ss.logger.Error(fmt.Sprintf("Shifter: Error parsing WhiteList end time Reason: %v", err))
@@ -40,12 +40,12 @@ func (ss *ShifterService) initWhitelist() {
 
 // timeWithinWLIntervalCheck accepts 'start', 'end', 'check' times
 // and returns true if 'check' is in between 'start' and 'end'
-func (ss ShifterService) timeWithinWLIntervalCheck(start, end, check time.Time) bool {
+func timeWithinWLIntervalCheck(start, end, check time.Time) bool {
 	if start.Before(end) {
 		return !check.Before(start) && !check.After(end)
 	}
 	if start.Equal(end) {
 		return check.Equal(start)
 	}
-	return !start.After(check) || !end.Before(check)
+	return check.After(start) || check.Before(end)
 }

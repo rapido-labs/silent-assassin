@@ -1,6 +1,7 @@
 package gcloud
 
 import (
+	"errors"
 	"strings"
 )
 
@@ -11,6 +12,10 @@ func (client *GCloudClient) setClusterDetails() error {
 
 	if err != nil {
 		return err
+	}
+
+	if len(nodes.Items) == 0 {
+		return errors.New("zero nodes in the cluster")
 	}
 
 	s := strings.Split(nodes.Items[0].Spec.ProviderID, "/")

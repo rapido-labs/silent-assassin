@@ -12,12 +12,13 @@ import (
 )
 
 type GCloudClient struct {
-	project          string
-	location         string
-	cluster          string
-	kubeClient       k8s.IKubernetesClient
-	computeService   *compute.Service
-	containerService *container.Service
+	project                    string
+	location                   string
+	cluster                    string
+	kubeClient                 k8s.IKubernetesClient
+	computeServiceComputeScope *compute.Service
+	containerServiceCloudScope *container.Service
+	computeServiceCloudScope   *compute.Service
 }
 
 type IGCloudClient interface {
@@ -26,37 +27,50 @@ type IGCloudClient interface {
 	ListNodePools() ([]*container.NodePool, error)
 	GetNodePool(npName string) (*container.NodePool, error)
 	SetNodePoolSize(npName string, size int64, timeout int) error
+	GetNumberOfZones() int
 }
 
 func NewClient(kc k8s.IKubernetesClient) IGCloudClient {
 	var gClient GCloudClient
 
-	computeClient, err := google.DefaultClient(context.Background(), compute.ComputeScope)
+	computeClientComputeScope, err := google.DefaultClient(context.Background(), compute.ComputeScope)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	computeService, err := compute.New(computeClient)
-
-	if err != nil {
-		panic(err.Error())
-	}
-
-	containerClient, err := google.DefaultClient(context.Background(), container.CloudPlatformScope)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	containerService, err := container.New(containerClient)
+	computeServiceComputeScope, err := compute.New(computeClientComputeScope)
 
 	if err != nil {
 		panic(err.Error())
 	}
 
+	containerClientCloudScope, err := google.DefaultClient(context.Background(), container.CloudPlatformScope)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	containerServiceCloudScope, err := container.New(containerClientCloudScope)
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	computeClientCloudScope, err := google.DefaultClient(context.Background(), compute.CloudPlatformScope)
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	computeServiceCloudScope, err := compute.New(computeClientCloudScope)
+
+	if err != nil {
+		panic(err.Error())
+	}
 	gClient = GCloudClient{
-		computeService:   computeService,
-		containerService: containerService,
-		kubeClient:       kc,
+		computeServiceComputeScope: computeServiceComputeScope,
+		containerServiceCloudScope: containerServiceCloudScope,
+		computeServiceCloudScope:   computeServiceCloudScope,
+		kubeClient:                 kc,
 	}
 
 	// gClient.project, gClient.location, gClient.cluster, _ = gClient.setclusterDetails()
@@ -70,12 +84,12 @@ func NewClient(kc k8s.IKubernetesClient) IGCloudClient {
 }
 
 func (client GCloudClient) DeleteInstance(zone, name string) error {
-	_, err := client.computeService.Instances.Delete(client.project, zone, name).Context(context.Background()).Do()
+	_, err := client.computeServiceComputeScope.Instances.Delete(client.project, zone, name).Context(context.Background()).Do()
 	return err
 }
 
 func (client GCloudClient) GetInstance(project, zone, name string) (*compute.Instance, error) {
-	instance, err := client.computeService.Instances.Get(project, zone, name).Context(context.Background()).Do()
+	instance, err := client.computeServiceComputeScope.Instances.Get(project, zone, name).Context(context.Background()).Do()
 	if err != nil {
 		return instance, err
 	}
@@ -85,7 +99,7 @@ func (client GCloudClient) GetInstance(project, zone, name string) (*compute.Ins
 func (client GCloudClient) ListNodePools() ([]*container.NodePool, error) {
 
 	clusterURI := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", client.project, client.location, client.cluster)
-	npsResp, err := client.containerService.Projects.Locations.Clusters.NodePools.List(clusterURI).Context(context.Background()).Do()
+	npsResp, err := client.containerServiceCloudScope.Projects.Locations.Clusters.NodePools.List(clusterURI).Context(context.Background()).Do()
 
 	if err != nil {
 		return nil, err
@@ -97,7 +111,7 @@ func (client GCloudClient) ListNodePools() ([]*container.NodePool, error) {
 func (client GCloudClient) GetNodePool(name string) (*container.NodePool, error) {
 
 	npURI := fmt.Sprintf("projects/%s/locations/%s/clusters/%s/nodePools/%s", client.project, client.location, client.cluster, name)
-	np, err := client.containerService.Projects.Locations.Clusters.NodePools.Get(npURI).Context(context.Background()).Do()
+	np, err := client.containerServiceCloudScope.Projects.Locations.Clusters.NodePools.Get(npURI).Context(context.Background()).Do()
 
 	if err != nil {
 		return nil, err
@@ -115,7 +129,7 @@ func (client GCloudClient) waitForLocationOperation(ctx context.Context, operati
 		case <-ctx.Done():
 			return fmt.Errorf("timeout waiting for operation to complete")
 		case <-ticker.C:
-			result, err := client.containerService.Projects.Locations.Operations.Get(opURI).Context(context.Background()).Do()
+			result, err := client.containerServiceCloudScope.Projects.Locations.Operations.Get(opURI).Context(context.Background()).Do()
 			if err != nil {
 				return fmt.Errorf("Locations.Operations.Get: %s", err)
 			}
@@ -135,7 +149,7 @@ func (client GCloudClient) SetNodePoolSize(name string, size int64, timeout int)
 		NodeCount: size,
 	}
 
-	op, err := client.containerService.Projects.Locations.Clusters.NodePools.SetSize(npURI, npResizeRequest).Context(context.Background()).Do()
+	op, err := client.containerServiceCloudScope.Projects.Locations.Clusters.NodePools.SetSize(npURI, npResizeRequest).Context(context.Background()).Do()
 
 	if err != nil {
 		return err
@@ -150,4 +164,18 @@ func (client GCloudClient) SetNodePoolSize(name string, size int64, timeout int)
 		return err
 	}
 	return nil
+}
+
+func (client GCloudClient) GetNumberOfZones() int {
+	regionURI := fmt.Sprintf("https://www.googleapis.com/compute/v1/projects/%v/regions/%v", client.project, client.location)
+	filterByRegion := fmt.Sprintf("region = \"%v\"", regionURI)
+	req := client.computeServiceCloudScope.Zones.List(client.project).Filter(filterByRegion)
+	zoneCount := 0
+	if err := req.Pages(context.Background(), func(page *compute.ZoneList) error {
+		zoneCount += len(page.Items)
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+	return zoneCount
 }

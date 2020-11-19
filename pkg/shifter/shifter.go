@@ -19,10 +19,9 @@ import (
 
 const timeLayout string = "15:04"
 
-//Suggest a better name
 type npShiftConf struct {
-	destNodePool       string
-	sourceMinNodeCount int64
+	preemptibleNP        string
+	onDemandMinNodeCount int64
 }
 
 type ShifterService struct {
@@ -30,13 +29,12 @@ type ShifterService struct {
 	logger             logger.IZapLogger
 	kubeClient         k8s.IKubernetesClient
 	gcloudClient       gcloud.IGCloudClient
-	killer             killer.KillerService
+	killer             killer.IKiller
 	notifier           notifier.INotifierClient
-	nodePoolMap        map[string]npShiftConf
 	whiteListIntervals []wlInterval
 }
 
-func NewShifterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, gc gcloud.IGCloudClient, nf notifier.INotifierClient, kl killer.KillerService) ShifterService {
+func NewShifterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, gc gcloud.IGCloudClient, nf notifier.INotifierClient, kl killer.IKiller) ShifterService {
 	return ShifterService{
 		cp:           cp,
 		logger:       zl,
@@ -70,7 +68,7 @@ func (ss ShifterService) Start(ctx context.Context, wg *sync.WaitGroup) {
 			}
 
 			for _, interval := range ss.whiteListIntervals {
-				if ss.timeWithinWLIntervalCheck(interval.start, interval.end, now) {
+				if timeWithinWLIntervalCheck(interval.start, interval.end, now) {
 					ss.shift()
 				}
 			}
@@ -80,14 +78,14 @@ func (ss ShifterService) Start(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 //getNodePoolMap finds out fallback on-demand nodePools and their respective preemptible node-pools.
-func (ss *ShifterService) getNodePoolMap() error {
-
+func (ss *ShifterService) getNodePoolMap() (map[string]npShiftConf, error) {
+	nodePoolMap := make(map[string]npShiftConf)
 	nps, err := ss.gcloudClient.ListNodePools()
 
 	ss.logger.Info(fmt.Sprintf("Nodepools in the cluster %v", nps))
 
 	if err != nil {
-		return err
+		return nodePoolMap, err
 	}
 
 	var preemptibleNodePools, onDemandNodePools []container.NodePool
@@ -101,19 +99,18 @@ func (ss *ShifterService) getNodePoolMap() error {
 	}
 
 	// Loop over preemptible nodepools and find their corresponding fallback on-demand node-pool.
-	ss.nodePoolMap = make(map[string]npShiftConf)
 	for _, pnp := range preemptibleNodePools {
 		for _, onp := range onDemandNodePools {
 			if reflect.DeepEqual(pnp.Config.Labels, onp.Config.Labels) && pnp.Config.MachineType == onp.Config.MachineType {
 
-				ss.nodePoolMap[onp.Name] = npShiftConf{
-					destNodePool:       pnp.Name,
-					sourceMinNodeCount: onp.Autoscaling.MinNodeCount,
+				nodePoolMap[onp.Name] = npShiftConf{
+					preemptibleNP:        pnp.Name,
+					onDemandMinNodeCount: onp.Autoscaling.MinNodeCount,
 				}
 			}
 		}
 	}
-	return nil
+	return nodePoolMap, nil
 }
 
 //getNodePoolSize gets the node-pool size by checking maximum number of nodes in the available zones.
@@ -150,80 +147,87 @@ func (ss ShifterService) getNodePoolSize(selector string) (int64, error) {
 func (ss ShifterService) makeNodeUnschedulable(nodes []v1.Node) error {
 
 	for _, node := range nodes {
-
-		node.Spec.Unschedulable = true
-		err := ss.kubeClient.UpdateNode(node)
-		return err
+		ss.logger.Info(fmt.Sprintf("Cordoning node %v", node.Name))
+		recentNodeObject, err := ss.kubeClient.GetNode(node.Name)
+		if err != nil {
+			return err
+		}
+		recentNodeObject.Spec.Unschedulable = true
+		err = ss.kubeClient.UpdateNode(recentNodeObject)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func (ss ShifterService) shift() {
-
+	numberofZones := ss.gcloudClient.GetNumberOfZones()
 	//Create a nodepool map to determine source fallback on-demand nodepool and
 	//their respective preemptible preemptible nodepools.
-	err := ss.getNodePoolMap()
+	nodePoolMap, err := ss.getNodePoolMap()
 	if err != nil {
-		ss.logger.Error(fmt.Sprintf("Error creating the noedpool map: %v", err.Error()))
+		ss.logger.Error(fmt.Sprintf("Error creating the nodepool map: %v", err.Error()))
 		ss.notifier.Error(config.EventGetNodes, fmt.Sprintf("Error creating the nodepool %v", err.Error()))
 		return
 	}
 
 	// Iterate through each fallback ond-demand nodepool to see if they have node-pool size
 	// greater than the min node count.
-	for sourceNodePool, npInfo := range ss.nodePoolMap {
+	for onDemandNodePool, npInfo := range nodePoolMap {
 
-		sourceNPSelector := fmt.Sprintf("cloud.google.com/gke-nodepool=%s", sourceNodePool)
-		sourceNPSize, err := ss.getNodePoolSize(sourceNPSelector)
+		onDemandNPSelector := fmt.Sprintf("cloud.google.com/gke-nodepool=%s", onDemandNodePool)
+		onDemandNPSize, err := ss.getNodePoolSize(onDemandNPSelector)
 		if err != nil {
-			ss.notifier.Error(config.EventGetNodes, fmt.Sprintf("Error getting node size of nodepool %v, %v", sourceNodePool, err.Error()))
-			ss.logger.Error(fmt.Sprintf("Error getting node size of nodepool %v", sourceNodePool))
+			ss.notifier.Error(config.EventGetNodes, fmt.Sprintf("Error getting node size of nodepool %v, %v", onDemandNodePool, err.Error()))
+			ss.logger.Error(fmt.Sprintf("Error getting node size of nodepool %v", onDemandNodePool))
 			continue
 		}
 
-		destSelector := fmt.Sprintf("cloud.google.com/gke-nodepool=%s", npInfo.destNodePool)
+		preemptibleNPSelector := fmt.Sprintf("cloud.google.com/gke-nodepool=%s", npInfo.preemptibleNP)
 
 		//Shift the nodes when size of fallback on-demand nodepool is greater than preemptible node-pool.
-		if sourceNPSize > npInfo.sourceMinNodeCount {
+		if onDemandNPSize > npInfo.onDemandMinNodeCount {
 
-			sourceNodes, err := ss.kubeClient.GetNodes(sourceNPSelector)
+			onDemandNodes, err := ss.kubeClient.GetNodes(onDemandNPSelector)
 
 			if err != nil {
-				ss.notifier.Error(config.EventGetNodes, fmt.Sprintf("Error getting nodes in %v nodepool, %v", sourceNodePool, err.Error()))
-				ss.logger.Error(fmt.Sprintf("Error getting nodes in %v nodepool, %v", sourceNodePool, err.Error()))
+				ss.notifier.Error(config.EventGetNodes, fmt.Sprintf("Error getting nodes in %v nodepool, %v", onDemandNodePool, err.Error()))
+				ss.logger.Error(fmt.Sprintf("Error getting nodes in %v nodepool, %v", onDemandNodePool, err.Error()))
 				continue
 			}
 
-			destNPSize, err := ss.getNodePoolSize(destSelector)
-			if err != nil {
-				ss.logger.Error(fmt.Sprintf("Error fetching destination nodepool size %v\n", err.Error()))
-				ss.notifier.Error(config.EventGetNodes, fmt.Sprintf("Error fetching destination nodepool size %v\n", err.Error()))
-			}
-
-			// Nodes to be added is the difference between current size of source node-pool and its min node count.
-			nodesTobeAdded := sourceNPSize - npInfo.sourceMinNodeCount
-
-			// Resize the destination nodepool to sum of curent size of destination node-pool and nodesTobeAdded.
-			ss.logger.Info(fmt.Sprintf("Resizing the destination nodepool: %v node-size: %d -> %d", npInfo.destNodePool, destNPSize, destNPSize+nodesTobeAdded))
-			ss.notifier.Info(config.EvenetResizeNodePool, fmt.Sprintf("Resizing the destination nodepool: %v node-size: %d -> %d", npInfo.destNodePool, destNPSize, destNPSize+nodesTobeAdded))
-			err = ss.gcloudClient.SetNodePoolSize(npInfo.destNodePool, destNPSize+nodesTobeAdded, ss.cp.GetInt(config.ShifterNPResizeTimeout))
-			if err != nil {
-				ss.logger.Error(fmt.Sprintf("Resizing the destination nodepool: %v node-size: %d -> %d failed: %v", npInfo.destNodePool, destNPSize, destNPSize+nodesTobeAdded, err.Error()))
-				ss.notifier.Error(config.EvenetResizeNodePool, fmt.Sprintf("Resizing the destination nodepool: %v node-size: %d -> %d failed: %v", npInfo.destNodePool, destNPSize, destNPSize+nodesTobeAdded, err.Error()))
-				// Return, as there might not be enough preemptible resources available at the data center.
-				return
-			}
-
 			// Cordon all source nodes so that no deleted workload will get scheduled in the source nodes again.
-			err = ss.makeNodeUnschedulable(sourceNodes.Items)
+			err = ss.makeNodeUnschedulable(onDemandNodes.Items)
 			if err != nil {
 				ss.notifier.Error(config.EventCordon, fmt.Sprintf("Error cordoning node %v", err.Error()))
 				ss.logger.Error(fmt.Sprintf("Error cordoning node %v", err.Error()))
+				continue
 			}
-
+			nodesDeleted := 0
 			// Iterate through source nodes and drain the node.
-			for _, node := range sourceNodes.Items {
+			for _, node := range onDemandNodes.Items {
 
+				if nodesDeleted%numberofZones == 0 {
+
+					preemptibleNPSize, err := ss.getNodePoolSize(preemptibleNPSelector)
+					if err != nil {
+						ss.logger.Error(fmt.Sprintf("Error fetching preemptible nodepool size %v\n", err.Error()))
+						ss.notifier.Error(config.EventGetNodes, fmt.Sprintf("Error fetching destination nodepool size %v\n", err.Error()))
+						return
+					}
+
+					// Resize the preemptible nodepool to sum of curent size of preemptible node-pool and one
+					ss.logger.Info(fmt.Sprintf("Resizing the preemptible nodepool: %v node-size: %d -> %d", npInfo.preemptibleNP, preemptibleNPSize, preemptibleNPSize+1))
+					ss.notifier.Info(config.EventResizeNodePool, fmt.Sprintf("Resizing the preemptible nodepool: %v node-size: %d -> %d", npInfo.preemptibleNP, preemptibleNPSize, preemptibleNPSize+1))
+					err = ss.gcloudClient.SetNodePoolSize(npInfo.preemptibleNP, preemptibleNPSize+1, ss.cp.GetInt(config.ShifterNPResizeTimeout))
+					if err != nil {
+						ss.logger.Error(fmt.Sprintf("Resizing the preemptible nodepool: %v node-size: %d -> %d failed: %v", npInfo.preemptibleNP, preemptibleNPSize, preemptibleNPSize+1, err.Error()))
+						ss.notifier.Error(config.EventResizeNodePool, fmt.Sprintf("Resizing the preemptible nodepool: %v node-size: %d -> %d failed: %v", npInfo.preemptibleNP, preemptibleNPSize, preemptibleNPSize+1, err.Error()))
+						// Return, as there might not be enough preemptible resources available at the data center.
+						return
+					}
+				}
 				err := ss.killer.EvacuatePodsFromNode(node.Name, ss.cp.GetUint32(config.KillerDrainingTimeoutWhenNodeExpiredMs), false)
 
 				if err != nil {
@@ -232,12 +236,16 @@ func (ss ShifterService) shift() {
 					continue
 				}
 
+				ss.logger.Info(fmt.Sprintf("Deleting the node %v", node.Name))
+				ss.notifier.Info(config.EventDeleteNode, fmt.Sprintf("Deleting the node %v", node.Name))
 				err = ss.kubeClient.DeleteNode(node.Name)
 				if err != nil {
 					ss.logger.Error(fmt.Sprintf("Error deleting the node %v: %v", node.Name, err.Error()))
 					ss.notifier.Error(config.EventDeleteNode, fmt.Sprintf("Error deleting the node %v: %v", node.Name, err.Error()))
 					continue
 				}
+				nodesDeleted++
+
 				//Sleep after node deletion for the workloads to stabilize
 				time.Sleep(time.Millisecond * time.Duration(ss.cp.GetInt32(config.ShifterSleepAfterNodeDeletionMs)))
 			}

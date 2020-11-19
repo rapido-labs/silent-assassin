@@ -41,3 +41,8 @@ func (m *GCloudClientMock) SetNodePoolSize(npName string, size int64, timeout in
 	args := m.Called(npName, size, timeout)
 	return args.Error(0)
 }
+
+func (m *GCloudClientMock) GetNumberOfZones() int {
+	args := m.Called()
+	return args.Get(0).(int)
+}
