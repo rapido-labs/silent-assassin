@@ -7,7 +7,8 @@ Silent Assassin employs a client server model, where the server is responsible f
 The SA server has three components
 1) **Spotter**
 2) **Killer**
-3) **Informer**
+3) **Shifter**
+4) **Informer**
 
 ### Spotter
 The Spotter continuously scans for new PVMs and calculates the expiry time of the PVM such that the PVM will not reach its 24-hours limit and gets terminated during a configured non-business interval of the day. Spotter tries to spread the expiry times of the nodes within that interval as an attempt to avoid large scale disruption. The expiry time is added as an annotation on the node as shown below.
@@ -25,6 +26,10 @@ Initially, we overlooked the fact that GCP does not provide availability guarant
 
 ![](images/Silent-Assassin-Killer.jpg)
 
+### Shifter
+The shifter at configured interval of time, typically off-peak business hours, continuously polls for the backup on-demand node-pools. If the number of nodes in a backup node-pool is more than minimum node-count in its autoscaling configuration then it will shift the workloads to Preemptible node-pool and kill the nodes. Usually, workloads get scheduled in backup node-pools when GCP cannot create new PVMs.
+
+![](images/Silent-Assassin-Shifter.jpg)
 ### Informer
 The Informer solves the unexpected loss of pods by unanticipated preemption of a PVM. This runs as daemonset pod on each preemptible node, subscribes to preempted value and makes a REST call to SA HTTP Server. SA will start deleting the pods running on that node. As the clean up activity should be performed within 30 seconds after receiving preemption, the server deletes the pods with 30 seconds as the graceful shut down period.
 
