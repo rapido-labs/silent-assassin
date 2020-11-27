@@ -33,7 +33,7 @@ func (k *KillerTestSuite) SetupTest() {
 	k.notifierMock.On("Info", mock.Anything, mock.Anything)
 	k.notifierMock.On("Error", mock.Anything, mock.Anything)
 	k.configMock.On("GetString", mock.Anything).Return("debug")
-	k.configMock.On("GetStringSlice", "spotter.label_selectors").Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
+	k.configMock.On("GetStringSlice", config.NodeSelectors).Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
 	k.logger = logger.Init(k.configMock)
 }
 func (k *KillerTestSuite) TestShouldReturnExpiredNodes() {

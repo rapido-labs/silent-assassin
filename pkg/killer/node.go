@@ -110,14 +110,12 @@ func (ks KillerService) startNodeDrain(nodeName string) error {
 	return nil
 }
 
-//getProjectIDAndZoneFromNode extracts the GCP projectID and zone
+//getZoneFromNode extracts the GCP projectID and zone
 //from the given node.
-func getProjectIDAndZoneFromNode(node v1.Node) (string, string) {
+func getZoneFromNode(node v1.Node) string {
 	s := strings.Split(node.Spec.ProviderID, "/")
-	projectID := s[2]
 	zone := s[3]
-
-	return projectID, zone
+	return zone
 }
 
 func (ks KillerService) deleteNode(node v1.Node) {
@@ -134,9 +132,9 @@ func (ks KillerService) deleteNode(node v1.Node) {
 	ks.notifier.Info(config.EventDeleteNode, nodeDetails)
 
 	// Delete gcloud instance.
-	projectID, zone := getProjectIDAndZoneFromNode(node)
+	zone := getZoneFromNode(node)
 	ks.logger.Info(fmt.Sprintf("Deletig google instance %s", node.Name))
-	if err := ks.gcloudClient.DeleteInstance(projectID, zone, node.Name); err != nil {
+	if err := ks.gcloudClient.DeleteInstance(zone, node.Name); err != nil {
 		ks.logger.Error(fmt.Sprintf("Could not kill the node %s %s", node.Name, err.Error()))
 		ks.notifier.Error(config.EventDeleteInstance, fmt.Sprintf("%s\nError:%s", nodeDetails, err.Error()))
 		return

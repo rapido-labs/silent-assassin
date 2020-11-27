@@ -14,6 +14,7 @@ import (
 	"github.com/roppenlabs/silent-assassin/pkg/killer"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
 	"github.com/roppenlabs/silent-assassin/pkg/notifier"
+	"github.com/roppenlabs/silent-assassin/pkg/shifter"
 	"github.com/roppenlabs/silent-assassin/pkg/spotter"
 	"github.com/spf13/cobra"
 )
@@ -32,7 +33,8 @@ var serverCmd = &cobra.Command{
 		configProvider := config.Init(cfgFile)
 		zapLogger := logger.Init(configProvider)
 		kubeClient := k8s.NewClient(configProvider, zapLogger)
-		gcloudClient := gcloud.NewClient()
+
+		gcloudClient := gcloud.NewClient(kubeClient)
 
 		ns := notifier.NewNotificationService(configProvider, zapLogger)
 		wg.Add(1)
@@ -50,6 +52,9 @@ var serverCmd = &cobra.Command{
 		wg.Add(1)
 		go server.Start(ctx, wg)
 
+		shs := shifter.NewShifterService(configProvider, zapLogger, kubeClient, gcloudClient, ns, ks)
+		wg.Add(1)
+		go shs.Start(ctx, wg)
 		<-sigChan
 
 		zapLogger.Info("Starting shut down")
