@@ -1,4 +1,4 @@
-name: CI
+name: 'build and test'
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
       with:
         go-version: ^1.13
       id: go
-    
+
     - name: Setup timezone
       run: sudo timedatectl set-timezone Asia/Kolkata
 
