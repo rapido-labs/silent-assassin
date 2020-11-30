@@ -60,6 +60,11 @@ silent_assassin:
     poll_interval_ms: 1000
     draining_timeout_when_node_expired_ms: 300000
     draining_timeout_when_node_preempted_ms: 25000
+  shifter:
+    poll_interval_ms: 1200000
+    white_list_interval_hours: 19:30-21:30
+    np_resize_timeout_mins: 10
+    sleep_after_node_deletion_ms: 120000
   slack:
     webhook_url: ""
     username: "SILENT-ASSASSIN"
