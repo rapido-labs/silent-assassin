@@ -23,10 +23,10 @@ $ gcloud iam --project=$PROJECT_ID roles create computeInstanceDelete \
     --description "Delete compute instances" \
     --permissions compute.instances.delete
 
-$ export $SERVICE_ACCOUNT_EMAIL=$(gcloud iam --project=$PROJECT_ID service-accounts list --filter $SERVICE_ACCOUNT --format 'value([email])')
+$ export SERVICE_ACCOUNT_EMAIL=$(gcloud iam --project=$PROJECT_ID service-accounts list --filter $SERVICE_ACCOUNT --format 'value([email])')
 
 $ gcloud projects add-iam-policy-binding $PROJECT_ID \
-    --member=serviceAccount:${$SERVICE_ACCOUNT_EMAIL} \
+    --member=serviceAccount:${SERVICE_ACCOUNT_EMAIL} \
     --role=projects/${PROJECT_ID}/roles/computeInstanceDelete
 
 gcloud iam service-accounts keys create key.json \
@@ -36,7 +36,7 @@ gcloud iam service-accounts keys create key.json \
 Keep the `key.json` file safely. We have to use the content of the file as value for parameter `secret.googleServiceAccountKeyfileJson` in helm chart.
 
 ### Authentication using workload identity
-Enable workload identintity in the cluster.
+Enable workload identity in the cluster.
 You can refer the steps for enabling WLI in the cluster [here](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#enable_on_cluster).
 
 Create a service account and give  **compute.instances.delete** permission.
@@ -78,7 +78,7 @@ export CLUSTER_NAME=<cluster-name>
 export REGION=<region>
 gcloud container node-pools update $NODEPOOL_NAME \
   --cluster=$CLUSTER_NAME \
-  --workload-metadata=GKE_METADATA
+  --workload-metadata=GKE_METADATA \
   --region $REGION
  ```
 
