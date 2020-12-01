@@ -70,9 +70,10 @@ func (ss ShifterService) Start(ctx context.Context, wg *sync.WaitGroup) {
 			for _, interval := range ss.whiteListIntervals {
 				if timeWithinWLIntervalCheck(interval.start, interval.end, now) {
 					ss.shift()
+					ss.logger.Info(fmt.Sprintf("Shifter sleeping for %v ms", ss.cp.GetInt(config.ShifterPollIntervalMs)))
+					time.Sleep(time.Millisecond * time.Duration(ss.cp.GetInt(config.ShifterPollIntervalMs)))
 				}
 			}
-			time.Sleep(time.Millisecond * time.Duration(ss.cp.GetInt(config.ShifterPollIntervalMs)))
 		}
 	}
 }
@@ -172,6 +173,8 @@ func (ss ShifterService) shift() {
 		return
 	}
 
+	ss.logger.Info(fmt.Sprintf("Node-pool map in the cluster: %v", nodePoolMap))
+
 	// Iterate through each fallback ond-demand nodepool to see if they have node-pool size
 	// greater than the min node count.
 	for onDemandNodePool, npInfo := range nodePoolMap {
@@ -188,7 +191,7 @@ func (ss ShifterService) shift() {
 
 		//Shift the nodes when size of fallback on-demand nodepool is greater than preemptible node-pool.
 		if onDemandNPSize > npInfo.onDemandMinNodeCount {
-
+			ss.logger.Info(fmt.Sprintf("Shifting node-pool %v to %v", onDemandNodePool, npInfo.preemptibleNP))
 			onDemandNodes, err := ss.kubeClient.GetNodes(onDemandNPSelector)
 
 			if err != nil {
@@ -228,6 +231,7 @@ func (ss ShifterService) shift() {
 						return
 					}
 				}
+				ss.logger.Info(fmt.Sprintf("Shifter Draining node %v", node.Name))
 				err := ss.killer.EvacuatePodsFromNode(node.Name, ss.cp.GetUint32(config.KillerDrainingTimeoutWhenNodeExpiredMs), false)
 
 				if err != nil {
@@ -247,6 +251,7 @@ func (ss ShifterService) shift() {
 				nodesDeleted++
 
 				//Sleep after node deletion for the workloads to stabilize
+				ss.logger.Info(fmt.Sprintf("Shifter sleeping for %d ms", ss.cp.GetInt32(config.ShifterSleepAfterNodeDeletionMs)))
 				time.Sleep(time.Millisecond * time.Duration(ss.cp.GetInt32(config.ShifterSleepAfterNodeDeletionMs)))
 			}
 		}
