@@ -2,7 +2,7 @@ apiVersion: v1
 data:
   application.yaml: |
     SERVER_LISTEN_HOST: 0.0.0.0
-    SERVER_HOST: {{ .Release.Name | quote }}
+    SERVER_HOST: http://{{ .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local
     SERVER_PORT: 8080
     LABEL_SELECTORS: {{ .Values.silent_assassin.node_selectors }}
 
