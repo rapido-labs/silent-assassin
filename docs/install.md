@@ -7,7 +7,7 @@ Inorder to delete VMs, SA would need access to service account that has access t
 
 ### Authentication by mounting key file.
 
-Create a service account, give  **compute.instances.delete** permission and create a service account key.
+Create a service account, assign **container.admin** and  **compute.admin** roles and create a service account key.
 
 ```
 $ export PROJECT_ID=<PROJECT>
@@ -17,17 +17,14 @@ $ export SERVICE_ACCOUNT=silent-assassin
 $ gcloud iam --project=$PROJECT_ID service-accounts create $SERVICE_ACCOUNT \
     --display-name $SERVICE_ACCOUNT
 
-$ gcloud iam --project=$PROJECT_ID roles create computeInstanceDelete \
-    --project $PROJECT_ID \
-    --title compute-instance-delete \
-    --description "Delete compute instances" \
-    --permissions compute.instances.delete
-
 $ export SERVICE_ACCOUNT_EMAIL=$(gcloud iam --project=$PROJECT_ID service-accounts list --filter $SERVICE_ACCOUNT --format 'value([email])')
 
 $ gcloud projects add-iam-policy-binding $PROJECT_ID \
     --member=serviceAccount:${SERVICE_ACCOUNT_EMAIL} \
-    --role=projects/${PROJECT_ID}/roles/computeInstanceDelete
+    --role=roles/compute.admin
+$ gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member=serviceAccount:${SERVICE_ACCOUNT_EMAIL} \
+    --role=roles/container.admin
 
 gcloud iam service-accounts keys create key.json \
   --iam-account ${$SERVICE_ACCOUNT_EMAIL}
