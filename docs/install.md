@@ -36,7 +36,7 @@ Keep the `key.json` file safely. We have to use the content of the file as value
 Enable workload identity in the cluster.
 You can refer the steps for enabling WLI in the cluster [here](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#enable_on_cluster).
 
-Create a service account and give  **compute.instances.delete** permission.
+Create a service account and assign **container.admin** and  **compute.admin** roles
 
 ```
 $ export PROJECT_ID=<PROJECT>
@@ -46,17 +46,15 @@ $ export SERVICE_ACCOUNT=silent-assassin
 $ gcloud iam --project=$PROJECT_ID service-accounts create $SERVICE_ACCOUNT \
     --display-name $SERVICE_ACCOUNT
 
-$ gcloud iam --project=$PROJECT_ID roles create computeInstanceDelete \
-    --project $PROJECT_ID \
-    --title compute-instance-delete \
-    --description "Delete compute instances" \
-    --permissions compute.instances.delete
-
-$ export $SERVICE_ACCOUNT_EMAIL=$(gcloud iam --project=$PROJECT_ID service-accounts list --filter $SERVICE_ACCOUNT --format 'value([email])')
+$ export SERVICE_ACCOUNT_EMAIL=$(gcloud iam --project=$PROJECT_ID service-accounts list --filter $SERVICE_ACCOUNT --format 'value([email])')
 
 $ gcloud projects add-iam-policy-binding $PROJECT_ID \
-    --member=serviceAccount:${$SERVICE_ACCOUNT_EMAIL} \
-    --role=projects/${PROJECT_ID}/roles/computeInstanceDelete
+    --member=serviceAccount:${SERVICE_ACCOUNT_EMAIL} \
+    --role=roles/compute.admin
+
+$ gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member=serviceAccount:${SERVICE_ACCOUNT_EMAIL} \
+    --role=roles/container.admin
 ```
 
 After creation of the service-account using above steps, we need to associate k8s service account that we use in the SA deployment with the GCP service account.
