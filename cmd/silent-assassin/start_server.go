@@ -48,13 +48,16 @@ var serverCmd = &cobra.Command{
 		wg.Add(1)
 		go ks.Start(ctx, wg)
 
+		if configProvider.GetBool(config.ShifterEnabled) {
+			shs := shifter.NewShifterService(configProvider, zapLogger, kubeClient, gcloudClient, ns, ks)
+			wg.Add(1)
+			go shs.Start(ctx, wg)
+		}
+
 		server := httpserver.New(configProvider, zapLogger, ks)
 		wg.Add(1)
 		go server.Start(ctx, wg)
 
-		shs := shifter.NewShifterService(configProvider, zapLogger, kubeClient, gcloudClient, ns, ks)
-		wg.Add(1)
-		go shs.Start(ctx, wg)
 		<-sigChan
 
 		zapLogger.Info("Starting shut down")
