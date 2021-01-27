@@ -10,17 +10,15 @@ const Metrics = "/metrics"
 const NodeSelectors = "label_selectors"
 const ExpiryTimeAnnotation = "silent-assassin/expiry-time"
 
-// const SpotterNodeSelectors = "spotter.label_selectors" TO BE REPLACED WITH NodeSelectors
 const SpotterPollIntervalMs = "spotter.poll_interval_ms"
 
-// const SpotterExpiryTimeAnnotation = "silent-assassin/expiry-time" TO BE REPLACED WITH ExpiryTimeAnnotation
 const SpotterWhiteListIntervalHours = "spotter.white_list_interval_hours"
 
-// const KillerDrainingTimeoutMs = "killer.draining_timeout_ms" TO BE REPLACED WITH KillerDrainingTimeoutWhenNodeExpiredMs
 const KillerPollIntervalMs = "killer.poll_interval_ms"
 const KillerDrainingTimeoutWhenNodeExpiredMs = "killer.draining_timeout_when_node_expired_ms"
 const KillerDrainingTimeoutWhenNodePreemptedMs = "killer.draining_timeout_when_node_preempted_ms"
 
+const ShifterEnabled = "shifter.enabled"
 const ShifterPollIntervalMs = "shifter.poll_interval_ms"
 const ShifterWhiteListIntervalHours = "shifter.white_list_interval_hours"
 const ShifterNPResizeTimeout = "shifter.np_resize_timeout_mins"
