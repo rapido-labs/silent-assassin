@@ -101,12 +101,16 @@ func (ss *ShifterService) getNodePoolMap() (map[string]npShiftConf, error) {
 
 	// Loop over preemptible nodepools and find their corresponding fallback on-demand node-pool.
 	for _, pnp := range preemptibleNodePools {
-		for _, onp := range onDemandNodePools {
-			if reflect.DeepEqual(pnp.Config.Labels, onp.Config.Labels) && pnp.Config.MachineType == onp.Config.MachineType {
 
-				nodePoolMap[onp.Name] = npShiftConf{
-					preemptibleNP:        pnp.Name,
-					onDemandMinNodeCount: onp.Autoscaling.MinNodeCount,
+		//Ignore the preemptible nodepool if it does not contain any labels on it.
+		if pnp.Config.Labels != nil {
+			for _, onp := range onDemandNodePools {
+				if reflect.DeepEqual(pnp.Config.Labels, onp.Config.Labels) && pnp.Config.MachineType == onp.Config.MachineType {
+
+					nodePoolMap[onp.Name] = npShiftConf{
+						preemptibleNP:        pnp.Name,
+						onDemandMinNodeCount: onp.Autoscaling.MinNodeCount,
+					}
 				}
 			}
 		}
