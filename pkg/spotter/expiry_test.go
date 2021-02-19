@@ -11,9 +11,10 @@ import (
 )
 
 type ExpiryTestData struct {
-	NodeName     string
-	CreationTime time.Time
-	EligibleWLs  []TimeSpan
+	NodeName           string
+	CreationTime       time.Time
+	EligibleWLs        []TimeSpan
+	WhitelistIntervals []string
 }
 type TimeSpan struct {
 	Start time.Time
@@ -21,7 +22,10 @@ type TimeSpan struct {
 }
 
 func parseTime(t string) time.Time {
-	r, _ := time.Parse(time.RFC1123Z, t)
+	r, err := time.Parse(time.RFC1123Z, t)
+	if err != nil {
+		panic(err)
+	}
 	return r
 }
 
@@ -38,8 +42,9 @@ func verifyNodeExpiry(t time.Time, eligibleWLs []TimeSpan) bool {
 func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRandom() {
 	testData := []ExpiryTestData{
 		{
-			NodeName:     "Node-1",
-			CreationTime: parseTime("Mon, 22 Jun 2020 10:10:00 +0000"),
+			NodeName:           "Node-1",
+			CreationTime:       parseTime("Mon, 22 Jun 2020 10:10:00 +0000"),
+			WhitelistIntervals: []string{"00:00-06:00", "12:00-14:00"},
 			EligibleWLs: []TimeSpan{
 				{
 					Start: parseTime("Mon, 22 Jun 2020 12:00:00 +0000"),
@@ -52,9 +57,9 @@ func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRando
 			},
 		},
 		{
-			NodeName:     "Node-2",
-			CreationTime: parseTime("Mon, 22 Jun 2020 15:40:00 +0000"),
-
+			NodeName:           "Node-2",
+			CreationTime:       parseTime("Mon, 22 Jun 2020 15:40:00 +0000"),
+			WhitelistIntervals: []string{"00:00-06:00", "12:00-14:00"},
 			EligibleWLs: []TimeSpan{
 				{
 					Start: parseTime("Mon, 23 Jun 2020 00:00:00 +0000"),
@@ -67,8 +72,9 @@ func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRando
 			},
 		},
 		{
-			NodeName:     "Node-3",
-			CreationTime: parseTime("Mon, 22 Jun 2020 00:40:00 +0000"),
+			NodeName:           "Node-3",
+			CreationTime:       parseTime("Mon, 22 Jun 2020 00:40:00 +0000"),
+			WhitelistIntervals: []string{"00:00-06:00", "12:00-14:00"},
 			EligibleWLs: []TimeSpan{
 				{
 					Start: parseTime("Mon, 22 Jun 2020 12:00:00 +0000"),
@@ -77,8 +83,9 @@ func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRando
 			},
 		},
 		{
-			NodeName:     "Node-4",
-			CreationTime: parseTime("Mon, 22 Jun 2020 22:20:00 +0000"),
+			NodeName:           "Node-4",
+			CreationTime:       parseTime("Mon, 22 Jun 2020 22:20:00 +0000"),
+			WhitelistIntervals: []string{"00:00-06:00", "12:00-14:00"},
 			EligibleWLs: []TimeSpan{
 				{
 					Start: parseTime("Mon, 23 Jun 2020 00:00:00 +0000"),
@@ -87,16 +94,30 @@ func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRando
 				{
 					Start: parseTime("Mon, 23 Jun 2020 12:00:00 +0000"),
 					End:   parseTime("Mon, 23 Jun 2020 14:00:00 +0000"),
+				},
+			},
+		},
+		{
+			NodeName:           "Node-5",
+			CreationTime:       parseTime("Thu, 18 Feb 2021 18:58:52 +0000"),
+			WhitelistIntervals: []string{"17:00-00:00"},
+			EligibleWLs: []TimeSpan{
+				{
+					Start: parseTime("Thu, 18 Feb 2021 17:00:00 +0000"),
+					End:   parseTime("Thu, 19 Feb 2021 00:00:00 +0000"),
+				},
+				{
+					Start: parseTime("Thu, 19 Feb 2021 17:00:00 +0000"),
+					End:   parseTime("Thu, 20 Feb 2021 00:00:00 +0000"),
 				},
 			},
 		},
 	}
-
-	suite.configMock.On("SplitStringToSlice", config.SpotterWhiteListIntervalHours, config.CommaSeparater).Return([]string{"00:00-06:00", "12:00-14:00"})
-	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock, suite.notifierMock)
-	ss.initWhitelist()
-
 	for _, testInput := range testData {
+
+		suite.configMock.On("SplitStringToSlice", config.SpotterWhiteListIntervalHours, config.CommaSeparater).Return(testInput.WhitelistIntervals)
+		ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock, suite.notifierMock)
+		ss.initWhitelist()
 
 		creationTimestamp := testInput.CreationTime
 
@@ -106,8 +127,11 @@ func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRando
 				CreationTimestamp: metav1.NewTime(creationTimestamp),
 				Annotations:       map[string]string{"node.alpha.kubernetes.io/ttl": "0"}}}
 
-		saExpTimeString, _ := ss.getExpiryTimestamp(nodeToBeAnnotated)
-		saExpTime, _ := time.Parse(time.RFC1123Z, saExpTimeString)
+		saExpTimeString, err := ss.getExpiryTimestamp(nodeToBeAnnotated)
+		suite.Assert().NoError(err)
+
+		saExpTime, err := time.Parse(time.RFC1123Z, saExpTimeString)
+		suite.Assert().NoError(err)
 
 		assert.True(suite.T(), verifyNodeExpiry(saExpTime, testInput.EligibleWLs), fmt.Sprintf("SA_Expiry time =[ %v ] didn't fall within one of the eligible WL interval = [ %v ] for Node = %v", saExpTime, testInput.EligibleWLs, testInput.NodeName))
 	}
@@ -127,8 +151,7 @@ func (suite *SpotterTestSuite) TestShouldReturnETinSameTimeZoneAsCT() {
 	saExpTimeString, _ := ss.getExpiryTimestamp(nodeToBeAnnotated)
 	saExpTime, _ := time.Parse(time.RFC1123Z, saExpTimeString)
 
-	assert.True(suite.T(), saExpTime.Location() == creationTime.Location(), "CT and ET TimeZone does not match")
-
+	suite.Assert().Equal(*saExpTime.Location(), *creationTime.Location(), "CT and ET TimeZone does not match")
 }
 
 func (suite *SpotterTestSuite) TestRandomNumber() {
