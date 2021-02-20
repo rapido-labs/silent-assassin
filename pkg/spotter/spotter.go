@@ -35,7 +35,7 @@ func (ss spotterService) Start(ctx context.Context, wg *sync.WaitGroup) {
 
 	ss.logger.Info(fmt.Sprintf("Starting Spotter Loop - Poll Interval : %d", ss.cp.GetInt(config.SpotterPollIntervalMs)))
 
-	ss.initWhitelist()
+	ss.initWhitelist(ss.cp.GetString(config.SpotterWhiteListIntervalHours))
 
 	for {
 		select {

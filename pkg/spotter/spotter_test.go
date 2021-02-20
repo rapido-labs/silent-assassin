@@ -40,12 +40,11 @@ func (suit *SpotterTestSuite) SetupTest() {
 
 func (suite *SpotterTestSuite) TestShouldFetchNodesWithLabels() {
 
-	suite.configMock.On("SplitStringToSlice", config.SpotterWhiteListIntervalHours, ",").Return([]string{"00:00-06:00", "12:00-14:00"})
 	suite.configMock.On("GetString", config.NodeSelectors).Return("cloud.google.com/gke-preemptible=true,label2=test")
 	suite.k8sMock.On("GetNodes", "cloud.google.com/gke-preemptible=true,label2=test").Return(&v1.NodeList{}, nil)
 
 	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock, suite.notifierMock)
-	ss.initWhitelist()
+	ss.initWhitelist("00:00-06:00,12:00-14:00")
 
 	ss.spot()
 
@@ -58,7 +57,6 @@ func (suite *SpotterTestSuite) TestShouldAnnotateIfAbsent() {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "Node-1",
 			Annotations: map[string]string{"silent-assassin/expiry-time": time.Now().String()}}}
-	suite.configMock.On("SplitStringToSlice", config.SpotterWhiteListIntervalHours, config.CommaSeparater).Return([]string{"00:00-06:00", "12:00-14:00"})
 	nodeToBeAnnotated := v1.Node{ObjectMeta: metav1.ObjectMeta{Name: "Node-2"}}
 
 	nodeList := v1.NodeList{
@@ -78,7 +76,7 @@ func (suite *SpotterTestSuite) TestShouldAnnotateIfAbsent() {
 
 	suite.notifierMock.On("Info", "ANNOTATE", mock.Anything).Return(nil)
 	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock, suite.notifierMock)
-	ss.initWhitelist()
+	ss.initWhitelist("00:00-06:00,12:00-14:00")
 	ss.spot()
 
 	suite.k8sMock.AssertExpectations(suite.T())

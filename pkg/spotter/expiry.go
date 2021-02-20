@@ -16,74 +16,86 @@ const (
 	// whitelistStartPrefix in `YYYY-MM-DDT` format, can be anthing
 	whitelistStartPrefix = "2000-01-01T"
 
-	// whitelistEndPrefix in `YYYY-MM-DDT` format, has to be whitelistStartPrefix plus one day
-	whitelistEndPrefix = "2000-01-02T"
-
 	// whitelistTimePostfix in `:ssZ` format, can be anything
 	whitelistTimePostfix = ":00Z"
 )
 
 var (
-	whitelistStart time.Time
-	whitelistEnd   time.Time
+	whitelistStart = constructTruncatedTime("00:00")
 )
 
 func init() {
 	rand.Seed(time.Now().Unix())
-	var err error
-
-	// whitelistStart is the start of the day
-	whitelistStart, err = time.Parse(time.RFC3339, whitelistStartPrefix+"00:00"+whitelistTimePostfix)
-	if err != nil {
-		fmt.Println(err)
-		panic("whitelistStart parse error")
-	}
-
-	// whitelistEnd is the start of the next day
-	whitelistEnd, err = time.Parse(time.RFC3339, whitelistEndPrefix+"00:00"+whitelistTimePostfix)
-	if err != nil {
-		panic("whitelistEnd parse error")
-	}
 }
 
-func (ss *spotterService) initWhitelist() {
+func (ss *spotterService) initWhitelist(whitelistIntervals string) {
 	ss.whiteListIntervals = timespanset.Empty()
-	wlStr := ss.cp.SplitStringToSlice(config.SpotterWhiteListIntervalHours, config.CommaSeparater)
+	wlStr := strings.Split(whitelistIntervals, config.CommaSeparater)
 	for _, wl := range wlStr {
 		times := strings.Split(wl, "-")
-		start, err := time.Parse(time.RFC3339, whitelistStartPrefix+times[0]+whitelistTimePostfix)
-		if err != nil {
-			ss.logger.Error(fmt.Sprintf("Spotter: Error parsing WhiteList Start date Reason: %v", err))
-			panic(err)
+		start := constructTruncatedTime(times[0])
+		end := constructTruncatedTime(times[1])
+
+		if start.Before(end) {
+			// if start time is before end time, add this normal time range
+			ss.whiteListIntervals.Insert(start, end)
+
+			// also add the same time range, but in the following day, this is helpful for
+			// finding interval intersections between node lifecycle and whitelist intervals
+			ss.whiteListIntervals.Insert(start.Add(time.Hour*24), end.Add(time.Hour*24))
+		} else {
+			// if end time is after **or equal** to start time, it indicates end time
+			// is in the following day of start time, add a 24 hour to end time
+			ss.whiteListIntervals.Insert(start, end.Add(time.Hour*24))
+
+			// same as before, add the same interval in the following day
+			ss.whiteListIntervals.Insert(start.Add(time.Hour*24), end.Add(time.Hour*48))
 		}
-		end, err := time.Parse(time.RFC3339, whitelistStartPrefix+times[1]+whitelistTimePostfix)
-		if err != nil {
-			ss.logger.Error(fmt.Sprintf("Spotter: Error parsing WhiteList End date Reason: %v", err))
-			panic(err)
-		}
-		if end.Before(start) {
-			ss.whiteListIntervals.Insert(start, whitelistEnd)
-			start = whitelistStart
-		}
-		ss.whiteListIntervals.Insert(start, end)
 	}
 	ss.logger.Info(fmt.Sprintf("Spotter: Whitelist set initialized : %v", ss.whiteListIntervals))
 }
 
-// midnight returns the midnight for the date
-func midnight(t time.Time) time.Time {
-	year, month, day := t.Date()
-	return time.Date(year, month, day, 0, 0, 0, 0, t.Location())
+func constructTruncatedTime(timeString string) time.Time {
+	fullTimeString := whitelistStartPrefix + timeString + whitelistTimePostfix
+	t, err := time.Parse(time.RFC3339, fullTimeString)
+	if err != nil {
+		panic(fmt.Sprintf("parseTimeInDay parse error: %v", err))
+	}
+	return t
 }
 
-func randomNumber(a, b int) int {
-	return a + rand.Intn(b-a+1)
+func truncateTime(t time.Time) time.Time {
+	return time.Date(
+		whitelistStart.Year(),
+		whitelistStart.Month(),
+		whitelistStart.Day(),
+		t.Hour(),
+		t.Minute(),
+		t.Second(),
+		t.Nanosecond(),
+		t.Location(),
+	)
 }
 
-func randomMinuntes(t1, t2 time.Time) time.Duration {
-	interval := t2.Sub(t1).Minutes()
-	randMins := randomNumber(0, int(interval))
-	return time.Duration(randMins)
+// randomTimeBetween returns a timestamp between t1 and t2: [t1, t2)
+func randomTimeBetween(t1, t2 time.Time) time.Time {
+	minutes := int(t2.Sub(t1).Minutes())
+	randMinutes := rand.Intn(minutes)
+	return t1.Add(time.Duration(randMinutes * int(time.Minute)))
+}
+
+func minTime(t1, t2 time.Time) time.Time {
+	if t1.Before(t2) {
+		return t1
+	}
+	return t2
+}
+
+func maxTime(t1, t2 time.Time) time.Time {
+	if t1.Before(t2) {
+		return t2
+	}
+	return t1
 }
 
 func (ss *spotterService) getExpiryTimestamp(node v1.Node) (string, error) {
@@ -92,45 +104,34 @@ func (ss *spotterService) getExpiryTimestamp(node v1.Node) (string, error) {
 
 	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Created time = [ %v ] Created Time in UTC = [ %v ]", node.Name, node.GetCreationTimestamp(), creationTsUTC))
 
-	truncatedCT := midnight(creationTsUTC)
-	projectedCT := whitelistStart.Add(creationTsUTC.Sub(truncatedCT))
-
-	actualExpiry := creationTsUTC.Add(24 * time.Hour)
-
-	truncatedET := midnight(actualExpiry)
-	projectedET := whitelistStart.Add(actualExpiry.Sub(truncatedET)).Add(24 * time.Hour)
-
+	// truncate year/month/day part of creation and expiration time to be on the same day of whitelist intervals
+	projectedCT := truncateTime(creationTsUTC)
+	projectedET := projectedCT.Add(24 * time.Hour)
 	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v Projected CT = [ %v ] Projected ExpiryTime = [ %v ]", node.Name, projectedCT, projectedET))
+
+	// enumerate every time interval that falls between projected creation and projected node expiration
+	// all of these intervals are eligible candidates for killing this node
+	// randomly pick one of these interval and pick a random time in that interval as selected expieration of this node
 	eligibleExpiryTimes := make([]time.Time, 0)
-	for day := 0; day < 2; day++ {
+	ss.whiteListIntervals.IntervalsBetween(projectedCT, projectedET, func(start, end time.Time) bool {
+		expiryTime := randomTimeBetween(start, end)
+		eligibleExpiryTimes = append(eligibleExpiryTimes, expiryTime)
+		ss.logger.Debug(fmt.Sprintf("GetExpiryTime : [Eligible Interval] Node = %v start = [ %v ], end = [ %v ], elegibleWLIntervals = [ %v ]", node.Name, start, end, eligibleExpiryTimes))
 
-		ss.whiteListIntervals.IntervalsBetween(whitelistStart, whitelistEnd, func(start, end time.Time) bool {
-			if day == 1 {
-				start = start.Add(24 * time.Hour)
-				end = end.Add(24 * time.Hour)
-			}
-			ss.logger.Debug(fmt.Sprintf("GetExpiryTime : [Current Interval] Node = %v Day = %d, start = [ %v ], end = [ %v ], elegibleWLIntervals = [ %v ]", node.Name, day, start, end, eligibleExpiryTimes))
-			if projectedCT.Before(start) && end.Before(projectedET) {
-				timeToBeAdded := randomMinuntes(start, end)
-				eligibleExpiryTimes = append(eligibleExpiryTimes, start.Add(time.Duration(timeToBeAdded)*time.Minute))
-
-				ss.logger.Debug(fmt.Sprintf("GetExpiryTime : [Eligible Interval] Node = %v Day = %d, start = [ %v ], end = [ %v ], elegibleWLIntervals = [ %v ]", node.Name, day, start, end, eligibleExpiryTimes))
-			}
-
-			return true
-		})
-
-	}
+		return true
+	})
 
 	if len(eligibleExpiryTimes) == 0 {
 		return "", errors.New("Cannot find a date")
 	}
 
 	saExpirtyTime := eligibleExpiryTimes[rand.Intn(len(eligibleExpiryTimes))]
-
 	ss.logger.Debug(fmt.Sprintf("GetExpiryTime : Node = %v elegibleWLIntervals = %v, saExpirtyTime = [ %v ]", node.Name, eligibleExpiryTimes, saExpirtyTime))
-	finalexp := midnight(creationTsUTC).Add(saExpirtyTime.Sub(whitelistStart))
 
+	// project this expiration time back to the day of node creation
+	finalexp := creationTsUTC.Add(saExpirtyTime.Sub(projectedCT))
+
+	actualExpiry := creationTsUTC.Add(24 * time.Hour)
 	if finalexp.After(actualExpiry) {
 		return "", errors.New("The Expiry time we calculated is after Actual Expiry Time :facepalm")
 	}
