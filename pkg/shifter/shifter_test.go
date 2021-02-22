@@ -2,6 +2,7 @@ package shifter
 
 import (
 	"testing"
+	"time"
 
 	"github.com/roppenlabs/silent-assassin/pkg/config"
 	"github.com/roppenlabs/silent-assassin/pkg/gcloud"
@@ -269,10 +270,10 @@ func (st *ShifterTestSuit) TestShouldShiftNodes() {
 	st.k8sMock.On("GetNodes", "cloud.google.com/gke-nodepool=services-np-1").Return(&onDemandNodes, nil)
 	st.k8sMock.On("GetNodes", "cloud.google.com/gke-nodepool=services-p-1").Return(&preemptibleNodeList, nil)
 	st.k8sMock.On("DeleteNode", mock.Anything).Return(nil)
-	st.configMock.On("GetInt", config.ShifterNPResizeTimeout).Return(10)
-	st.configMock.On("GetUint32", config.KillerDrainingTimeoutWhenNodeExpiredMs).Return(uint32(1000))
-	st.configMock.On("GetInt32", config.ShifterSleepAfterNodeDeletionMs).Return(int32(1000))
-	st.gCloudMock.On("SetNodePoolSize", "services-p-1", int64(2), 10).Return(nil)
+	st.configMock.On("GetDuration", config.ShifterNPResizeTimeout).Return(10 * time.Minute)
+	st.configMock.On("GetDuration", config.KillerDrainingTimeoutWhenNodeExpired).Return(time.Second)
+	st.configMock.On("GetDuration", config.ShifterSleepAfterNodeDeletion).Return(time.Second)
+	st.gCloudMock.On("SetNodePoolSize", "services-p-1", int64(2), 10*time.Minute).Return(nil)
 
 	for _, node := range onDemandNodes.Items {
 

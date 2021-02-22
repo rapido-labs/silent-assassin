@@ -112,18 +112,18 @@ func (k *KillerTestSuite) TestShouldWaitforDrainingOfnodesWithTimeout() {
 	pod3 := v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod-3"}}
 	pod4 := v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "pod-4"}}
 
-	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1, pod2, pod3, pod4}, nil).After(1000 * time.Millisecond).Once()
-	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1, pod2, pod3}, nil).After(1000 * time.Millisecond).Once()
-	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1, pod2}, nil).After(1000 * time.Millisecond).Once()
-	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1}, nil).After(1000 * time.Millisecond).Once()
-	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{}, nil).After(1000 * time.Millisecond).Once()
+	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1, pod2, pod3, pod4}, nil).After(time.Second).Once()
+	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1, pod2, pod3}, nil).After(time.Second).Once()
+	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1, pod2}, nil).After(time.Second).Once()
+	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1}, nil).After(time.Second).Once()
+	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{}, nil).After(time.Second).Once()
 
 	ks := NewKillerService(k.configMock, k.logger, k.k8sMock, k.gCloudMock, k.notifierMock)
-	assert.Nil(k.T(), ks.waitforDrainToFinish(nodeName, 5000), "err should be nothing")
+	assert.Nil(k.T(), ks.waitforDrainToFinish(nodeName, 5*time.Second), "err should be nothing")
 
-	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1}, nil).After(2000 * time.Millisecond).Once()
+	k.k8sMock.On("GetPodsInNode", nodeName).Return([]v1.Pod{pod1}, nil).After(2 * time.Second).Once()
 
-	assert.NotNil(k.T(), ks.waitforDrainToFinish(nodeName, 1000), "error should be something")
+	assert.NotNil(k.T(), ks.waitforDrainToFinish(nodeName, time.Second), "error should be something")
 	k.k8sMock.AssertExpectations(k.T())
 }
 

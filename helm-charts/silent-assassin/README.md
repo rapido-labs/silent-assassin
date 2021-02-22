@@ -59,15 +59,14 @@ We have shortned `silent-assassin` to `sa` in last few rows as the long name was
 | `silent_assassin.node_selectors`                       | node selectors for which sa should act                        | `cloud.google.com/gke-preemptible=true`    |
 | `silent_assassin.logger_level`                         | logging level of SA (debug|info|warn|error)                   | `warn`                                     |
 | `silent_assassin.k8s_run_mode`                         | SA run mode (InCluster|OutCluster)                            | `InCluster`                                |
-| `silent_assassin.spotter.poll_interval_ms`             | Spotter polling interval in ms                                | `1000`                                     |
+| `silent_assassin.spotter.poll_interval`                | Spotter polling interval                                      | `1s`                                       |
 | `sa.spotter.white_list_interval_hours`                 | Interval for node kills                                       | `"06:30-08:30,18:30-00:30"`                |
-| `sa.killer.poll_interval_ms`                           | Killer Poll interval in ms                                    |  `1000`                                    |
-| `sak.draining_timeout_when_node_expired_ms`            | timeout for drain when node expired in ms                     | `300000`                                   |
-| `sak.draining_timeout_when_node_preempted_ms`          | timeout for drain when node preempted in ms                   |                                            |
+| `sa.killer.poll_interval`                              | Killer Poll interval                                          | `1s`                                       |
+| `sak.draining_timeout_when_node_expired`               | timeout for drain when node expired                           | `5m`                                       |
+| `sak.draining_timeout_when_node_preempted`             | timeout for drain when node preempted                         |                                            |
 | `sa.slack.webhook_url`                                 | Slack webhook URL                                             | ``                                         |
 | `sa.slack.username`                                    | Username for Slack messages                                   | `SILENT-ASSASSIN`                          |
 | `sa.slack.channel`                                     | slack channel name                                            | ``                                         |
 | `sa.slack.icon_url`                                    | slack icon url                                                | ``                                         |
 | `sa.client.server_retries`                             | client side retries for server in case of preemption          | `4`                                        |
 | `sa.watch_maintainance_event`                          | watch for maintaintainance events along with preemption       | `false`                                    |
-

@@ -22,7 +22,7 @@ func (s Server) handleTermination(w http.ResponseWriter, r *http.Request) {
 	}
 
 	nodesPreempted.Inc()
-	err := s.killer.EvacuatePodsFromNode(node.Name, s.cp.GetUint32(config.KillerDrainingTimeoutWhenNodePreemptedMs), true)
+	err := s.killer.EvacuatePodsFromNode(node.Name, s.cp.GetDuration(config.KillerDrainingTimeoutWhenNodePreempted), true)
 
 	if err != nil {
 		s.logger.Error(fmt.Sprintf("Error evacuating pods from node %s", node.Name))

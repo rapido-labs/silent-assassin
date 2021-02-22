@@ -33,7 +33,7 @@ func NewSpotterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubern
 
 func (ss spotterService) Start(ctx context.Context, wg *sync.WaitGroup) {
 
-	ss.logger.Info(fmt.Sprintf("Starting Spotter Loop - Poll Interval : %d", ss.cp.GetInt(config.SpotterPollIntervalMs)))
+	ss.logger.Info(fmt.Sprintf("Starting Spotter Loop - Poll Interval : %s", ss.cp.GetDuration(config.SpotterPollInterval)))
 
 	ss.initWhitelist()
 
@@ -45,7 +45,7 @@ func (ss spotterService) Start(ctx context.Context, wg *sync.WaitGroup) {
 			return
 		default:
 			ss.spot()
-			time.Sleep(time.Millisecond * time.Duration(ss.cp.GetInt(config.SpotterPollIntervalMs)))
+			time.Sleep(ss.cp.GetDuration(config.SpotterPollInterval))
 		}
 	}
 }
