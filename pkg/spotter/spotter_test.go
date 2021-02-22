@@ -19,35 +19,36 @@ import (
 type SpotterTestSuite struct {
 	suite.Suite
 	k8sMock      *k8s.K8sClientMock
-	configMock   *config.ProviderMock
+	config       *config.Provider
 	logger       logger.IZapLogger
 	notifierMock *notifier.NotifierClientMock
 }
 
 func (suit *SpotterTestSuite) SetupTest() {
-	suit.configMock = new(config.ProviderMock)
 	suit.k8sMock = new(k8s.K8sClientMock)
+	suit.config = config.InitValue(suit.defaultConfigValues())
 	suit.notifierMock = new(notifier.NotifierClientMock)
 	suit.notifierMock.On("Info", mock.Anything, mock.Anything)
 	suit.notifierMock.On("Error", mock.Anything, mock.Anything)
-	suit.configMock.On("GetString", config.NodeSelectors).Return("cloud.google.com/gke-preemptible=true,label2=test")
-	suit.configMock.On("GetString", config.LogLevel).Return("info")
-	suit.configMock.On("GetInt", config.SpotterPollIntervalMs).Return(10)
-	suit.configMock.On("SplitStringToSlice", config.NodeSelectors, config.CommaSeparater).Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
 
-	suit.logger = logger.Init(suit.configMock)
+	suit.logger = logger.Init(suit.config)
+}
+
+func (suit *SpotterTestSuite) defaultConfigValues() map[string]interface{} {
+	return map[string]interface{}{
+		config.LogLevel:                      "info",
+		config.SpotterWhiteListIntervalHours: "00:00-06:00,12:00-14:00",
+		config.SpotterPollIntervalMs:         10,
+		config.NodeSelectors:                 "cloud.google.com/gke-preemptible=true,label2=test",
+	}
 }
 
 func (suite *SpotterTestSuite) TestShouldFetchNodesWithLabels() {
 
-	suite.configMock.On("GetString", config.NodeSelectors).Return("cloud.google.com/gke-preemptible=true,label2=test")
 	suite.k8sMock.On("GetNodes", "cloud.google.com/gke-preemptible=true,label2=test").Return(&v1.NodeList{}, nil)
 
-	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock, suite.notifierMock)
-	ss.initWhitelist("00:00-06:00,12:00-14:00")
-
+	ss := NewSpotterService(suite.config, suite.logger, suite.k8sMock, suite.notifierMock)
 	ss.spot()
-
 	suite.k8sMock.AssertExpectations(suite.T())
 }
 
@@ -75,8 +76,7 @@ func (suite *SpotterTestSuite) TestShouldAnnotateIfAbsent() {
 	})).Return(nil)
 
 	suite.notifierMock.On("Info", "ANNOTATE", mock.Anything).Return(nil)
-	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock, suite.notifierMock)
-	ss.initWhitelist("00:00-06:00,12:00-14:00")
+	ss := NewSpotterService(suite.config, suite.logger, suite.k8sMock, suite.notifierMock)
 	ss.spot()
 
 	suite.k8sMock.AssertExpectations(suite.T())

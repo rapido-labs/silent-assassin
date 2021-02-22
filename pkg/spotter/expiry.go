@@ -28,9 +28,9 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-func (ss *spotterService) initWhitelist(whitelistIntervals string) {
+func (ss *spotterService) initWhitelist() {
 	ss.whiteListIntervals = timespanset.Empty()
-	wlStr := strings.Split(whitelistIntervals, config.CommaSeparater)
+	wlStr := ss.cp.SplitStringToSlice(config.SpotterWhiteListIntervalHours, config.CommaSeparater)
 	for _, wl := range wlStr {
 		times := strings.Split(wl, "-")
 		start := constructTruncatedTime(times[0])

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/roppenlabs/silent-assassin/pkg/config"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -183,8 +184,11 @@ func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRando
 		// since the chosen expiration time is randomized, we run each test a few more times to ensure
 		for idx := 0; idx < 10; idx++ {
 			suite.Run(fmt.Sprintf("%s-%d", testInput.Name, idx), func() {
-				ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock, suite.notifierMock)
-				ss.initWhitelist(testInput.WhitelistIntervals)
+				config := config.InitValue(suite.defaultConfigValues(), map[string]interface{}{
+					config.SpotterWhiteListIntervalHours: testInput.WhitelistIntervals,
+				})
+
+				ss := NewSpotterService(config, suite.logger, suite.k8sMock, suite.notifierMock)
 				nodeToBeAnnotated := v1.Node{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              testInput.Name,
@@ -207,8 +211,7 @@ func (suite *SpotterTestSuite) TestShouldSlotNodeExpTimeToOneOfElegibleWLInRando
 
 func (suite *SpotterTestSuite) TestShouldReturnETinSameTimeZoneAsCT() {
 
-	ss := NewSpotterService(suite.configMock, suite.logger, suite.k8sMock, suite.notifierMock)
-	ss.initWhitelist("00:00-06:00,12:00-14:00")
+	ss := NewSpotterService(suite.config, suite.logger, suite.k8sMock, suite.notifierMock)
 	creationTime := parseTime("Mon, 22 Jun 2020 22:20:00 +0530")
 	nodeToBeAnnotated := v1.Node{
 		ObjectMeta: metav1.ObjectMeta{

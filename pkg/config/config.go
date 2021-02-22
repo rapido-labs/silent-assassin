@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -50,6 +51,17 @@ func Init(cfgFile string) *Provider {
 
 	return &Provider{Viper: v}
 
+}
+
+// InitValue creates a config provier that extends with in-memory values
+func InitValue(values ...map[string]interface{}) *Provider {
+	v := viper.New()
+	for _, value := range values {
+		if err := v.MergeConfigMap(value); err != nil {
+			panic(errors.Wrapf(err, "merge value failed %+v", value))
+		}
+	}
+	return &Provider{Viper: v}
 }
 
 func (f *Provider) GetString(key string) string {

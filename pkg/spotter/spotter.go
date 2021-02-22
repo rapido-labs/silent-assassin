@@ -23,19 +23,19 @@ type spotterService struct {
 }
 
 func NewSpotterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubernetesClient, nf notifier.INotifierClient) spotterService {
-	return spotterService{
+	ss := spotterService{
 		cp:         cp,
 		logger:     zl,
 		kubeClient: kc,
 		notifier:   nf,
 	}
+	ss.initWhitelist()
+	return ss
 }
 
 func (ss spotterService) Start(ctx context.Context, wg *sync.WaitGroup) {
 
 	ss.logger.Info(fmt.Sprintf("Starting Spotter Loop - Poll Interval : %d", ss.cp.GetInt(config.SpotterPollIntervalMs)))
-
-	ss.initWhitelist(ss.cp.GetString(config.SpotterWhiteListIntervalHours))
 
 	for {
 		select {
