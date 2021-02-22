@@ -127,8 +127,7 @@ func (suite *SpotterTestSuite) TestShouldReturnETinSameTimeZoneAsCT() {
 	saExpTimeString, _ := ss.getExpiryTimestamp(nodeToBeAnnotated)
 	saExpTime, _ := time.Parse(time.RFC1123Z, saExpTimeString)
 
-	assert.True(suite.T(), saExpTime.Location() == creationTime.Location(), "CT and ET TimeZone does not match")
-
+	suite.Assert().Equal(saExpTime.Location(), creationTime.Location(), "CT and ET TimeZone does not match")
 }
 
 func (suite *SpotterTestSuite) TestRandomNumber() {
