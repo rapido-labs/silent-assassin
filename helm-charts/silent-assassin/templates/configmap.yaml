@@ -40,5 +40,7 @@ data:
 kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-config
+  {{- if .Values.team }}
   labels:
     team: {{ .Values.team }}
+  {{- end }}
