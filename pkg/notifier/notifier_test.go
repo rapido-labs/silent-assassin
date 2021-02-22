@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"testing"
+	"time"
 
 	"github.com/roppenlabs/silent-assassin/pkg/config"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
@@ -28,7 +29,7 @@ func (suite *notifierTestSuit) TestSouldInitializeSlackClient() {
 	suite.configMock.On("GetString", config.SlackUsername).Return("silent-assassin")
 	suite.configMock.On("GetString", config.SlackChannel).Return("silent-assaain-dev")
 	suite.configMock.On("GetString", config.SlackIconURL).Return("https://www.flaticon.com/free-icon/slack_2111615")
-	suite.configMock.On("GetUint32", config.SlackTimeoutMs).Return(uint32(5000))
+	suite.configMock.On("GetDuration", config.SlackTimeout).Return(5 * time.Second)
 
 	n := NewNotificationService(suite.configMock, suite.logger)
 

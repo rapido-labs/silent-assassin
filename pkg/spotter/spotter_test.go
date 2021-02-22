@@ -32,7 +32,7 @@ func (suit *SpotterTestSuite) SetupTest() {
 	suit.notifierMock.On("Error", mock.Anything, mock.Anything)
 	suit.configMock.On("GetString", config.NodeSelectors).Return("cloud.google.com/gke-preemptible=true,label2=test")
 	suit.configMock.On("GetString", config.LogLevel).Return("info")
-	suit.configMock.On("GetInt", config.SpotterPollIntervalMs).Return(10)
+	suit.configMock.On("GetDuration", config.SpotterPollInterval).Return(10 * time.Millisecond)
 	suit.configMock.On("SplitStringToSlice", config.NodeSelectors, config.CommaSeparater).Return([]string{"cloud.google.com/gke-preemptible=true,label2=test"})
 
 	suit.logger = logger.Init(suit.configMock)
