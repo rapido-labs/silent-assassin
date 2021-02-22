@@ -90,7 +90,7 @@ func (ss spotterService) spot() {
 		node.SetAnnotations(nodeAnnotations)
 		err = ss.kubeClient.UpdateNode(node)
 		if err != nil {
-			ss.logger.Error(fmt.Sprintf("Failed to annotate node : %s", node.ObjectMeta.Name))
+			ss.logger.Error(fmt.Sprintf("Failed to annotate node %s: %s", node.ObjectMeta.Name, err))
 			ss.notifier.Error(config.EventAnnotate, fmt.Sprintf("%s\nError:%s", nodeDetails, err.Error()))
 			continue
 		}

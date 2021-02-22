@@ -124,7 +124,7 @@ func (ks KillerService) deleteNode(node v1.Node) {
 	// Delete the k8s node
 	ks.logger.Info(fmt.Sprintf("Deleting node %s", node.Name))
 	if err := ks.kubeClient.DeleteNode(node.Name); err != nil {
-		ks.logger.Info(fmt.Sprintf("Error deleting the node %s", node.Name))
+		ks.logger.Info(fmt.Sprintf("Error deleting the node %s: %s", node.Name, err))
 		ks.notifier.Error(config.EventDeleteNode, fmt.Sprintf("%s\nError:%s", nodeDetails, err.Error()))
 		return
 	}

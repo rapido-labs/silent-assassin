@@ -25,7 +25,7 @@ func (s Server) handleTermination(w http.ResponseWriter, r *http.Request) {
 	err := s.killer.EvacuatePodsFromNode(node.Name, s.cp.GetUint32(config.KillerDrainingTimeoutWhenNodePreemptedMs), true)
 
 	if err != nil {
-		s.logger.Error(fmt.Sprintf("Error evacuating pods from node %s", node.Name))
+		s.logger.Error(fmt.Sprintf("Error evacuating pods from node %s: %s", node.Name, err))
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 
