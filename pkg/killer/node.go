@@ -69,7 +69,7 @@ func (ks KillerService) makeNodeUnschedulable(node v1.Node) error {
 //waitforDrainToFinish function waits for the pods that were deleted by startDrainNode method
 //to get evicted from the node. This takes  timeout as an argument, if the draining of nodes
 //takes more time than the specified timeout, then the function returns timeout error.
-func (ks KillerService) waitforDrainToFinish(nodeName string, timeout uint32) error {
+func (ks KillerService) waitforDrainToFinish(nodeName string, timeout time.Duration) error {
 	start := time.Now()
 	for {
 		podsPending, err := ks.getPodsToBeDeleted(nodeName)
@@ -81,9 +81,9 @@ func (ks KillerService) waitforDrainToFinish(nodeName string, timeout uint32) er
 		if len(podsPending) == 0 {
 			return nil
 		}
-		elapsed := uint32(time.Since(start).Milliseconds())
+		elapsed := time.Since(start)
 		if elapsed >= timeout {
-			return fmt.Errorf("Drainout timed out. Drain duration exceeded %d mill seconds", timeout)
+			return fmt.Errorf("Drainout timed out. Drain duration exceeded %s", timeout)
 		}
 	}
 }
@@ -151,7 +151,7 @@ func getNodeDetails(node v1.Node, preemption bool) string {
 }
 
 //handlePreemption handles POST request on EvacuatePodsURI. This deletes the pods on the node requested.
-func (ks KillerService) EvacuatePodsFromNode(name string, timeout uint32, preemption bool) error {
+func (ks KillerService) EvacuatePodsFromNode(name string, timeout time.Duration, preemption bool) error {
 	start := time.Now()
 
 	node, err := ks.kubeClient.GetNode(name)

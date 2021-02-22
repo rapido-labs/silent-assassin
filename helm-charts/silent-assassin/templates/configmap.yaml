@@ -7,20 +7,20 @@ data:
     LABEL_SELECTORS: {{ .Values.silent_assassin.node_selectors }}
 
     SPOTTER:
-      POLL_INTERVAL_MS: {{ .Values.silent_assassin.spotter.poll_interval_ms }}
+      POLL_INTERVAL: {{ .Values.silent_assassin.spotter.poll_interval }}
       WHITE_LIST_INTERVAL_HOURS: {{ .Values.silent_assassin.spotter.white_list_interval_hours }}
 
     KILLER:
-      POLL_INTERVAL_MS: {{ .Values.silent_assassin.killer.poll_interval_ms }}
-      DRAINING_TIMEOUT_WHEN_NODE_EXPIRED_MS: {{ .Values.silent_assassin.killer.draining_timeout_when_node_expired_ms }}
-      DRAINING_TIMEOUT_WHEN_NODE_PREEMPTED_MS: {{ .Values.silent_assassin.killer.draining_timeout_when_node_preempted_ms }}
+      POLL_INTERVAL: {{ .Values.silent_assassin.killer.poll_interval }}
+      DRAINING_TIMEOUT_WHEN_NODE_EXPIRED: {{ .Values.silent_assassin.killer.draining_timeout_when_node_expired }}
+      DRAINING_TIMEOUT_WHEN_NODE_PREEMPTED: {{ .Values.silent_assassin.killer.draining_timeout_when_node_preempted }}
 
     SHIFTER:
       ENABLED: {{ .Values.silent_assassin.shifter.enabled }}
-      POLL_INTERVAL_MS: {{ .Values.silent_assassin.shifter.poll_interval_ms }}
+      POLL_INTERVAL: {{ .Values.silent_assassin.shifter.poll_interval }}
       WHITE_LIST_INTERVAL_HOURS: {{ .Values.silent_assassin.shifter.white_list_interval_hours }}
-      NP_RESIZE_TIMEOUT_MINS: {{ .Values.silent_assassin.shifter.np_resize_timeout_mins }}
-      SLEEP_AFTER_NODE_DELETION_MS: {{ .Values.silent_assassin.shifter.sleep_after_node_deletion_ms }}
+      NP_RESIZE_TIMEOUT: {{ .Values.silent_assassin.shifter.np_resize_timeout }}
+      SLEEP_AFTER_NODE_DELETION: {{ .Values.silent_assassin.shifter.sleep_after_node_deletion }}
 
     LOGGER:
       LEVEL:{{ .Values.silent_assassin.logger_level }}
