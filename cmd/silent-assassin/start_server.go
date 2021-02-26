@@ -32,7 +32,7 @@ var serverCmd = &cobra.Command{
 
 		configProvider := config.Init(cfgFile)
 		zapLogger := logger.Init(configProvider)
-		kubeClient := k8s.NewClient(configProvider, zapLogger)
+		kubeClient := k8s.NewClient(ctx, configProvider, zapLogger)
 
 		gcloudClient := gcloud.NewClient(kubeClient)
 

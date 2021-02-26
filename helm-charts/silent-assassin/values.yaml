@@ -60,6 +60,9 @@ silent_assassin:
     poll_interval: 1s
     draining_timeout_when_node_expired: 5m
     draining_timeout_when_node_preempted: 25s
+    evict_delete_deadline: 30s
+    grace_period_seconds_when_pod_deleted: 20
+
   shifter:
     enabled: true
     poll_interval: 20m

@@ -237,7 +237,12 @@ func (ss ShifterService) shift() {
 					}
 				}
 				ss.logger.Info(fmt.Sprintf("Shifter Draining node %v", node.Name))
-				err := ss.killer.EvacuatePodsFromNode(node.Name, ss.cp.GetDuration(config.KillerDrainingTimeoutWhenNodeExpired), false)
+				err := ss.killer.EvictPodsFromNode(
+					node.Name,
+					ss.cp.GetDuration(config.KillerDrainingTimeoutWhenNodeExpired),
+					ss.cp.GetDuration(config.KillerEvictDeleteDeadline),
+					ss.cp.GetInt(config.KillerGracePeriodSecondsWhenPodDeleted),
+				)
 
 				if err != nil {
 					ss.logger.Error(fmt.Sprintf("Error draining the node %v: %v", node.Name, err.Error()))

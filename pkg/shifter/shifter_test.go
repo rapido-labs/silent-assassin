@@ -272,6 +272,8 @@ func (st *ShifterTestSuit) TestShouldShiftNodes() {
 	st.k8sMock.On("DeleteNode", mock.Anything).Return(nil)
 	st.configMock.On("GetDuration", config.ShifterNPResizeTimeout).Return(10 * time.Minute)
 	st.configMock.On("GetDuration", config.KillerDrainingTimeoutWhenNodeExpired).Return(time.Second)
+	st.configMock.On("GetDuration", config.KillerEvictDeleteDeadline).Return(time.Millisecond)
+	st.configMock.On("GetInt", config.KillerGracePeriodSecondsWhenPodDeleted).Return(1)
 	st.configMock.On("GetDuration", config.ShifterSleepAfterNodeDeletion).Return(time.Second)
 	st.gCloudMock.On("SetNodePoolSize", "services-p-1", int64(2), 10*time.Minute).Return(nil)
 
@@ -281,7 +283,7 @@ func (st *ShifterTestSuit) TestShouldShiftNodes() {
 		node.Spec.Unschedulable = true
 		st.k8sMock.On("UpdateNode", node).Return(nil)
 	}
-	st.killerMock.On("EvacuatePodsFromNode", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	st.killerMock.On("EvictPodsFromNode", mock.AnythingOfType("string"), time.Second, time.Millisecond, 1).Return(nil)
 
 	ss.shift()
 

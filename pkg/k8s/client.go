@@ -1,9 +1,12 @@
 package k8s
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/roppenlabs/silent-assassin/pkg/config"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
@@ -16,6 +19,7 @@ import (
 
 type KubernetesClient struct {
 	*kubernetes.Clientset
+	ctx    context.Context
 	logger logger.IZapLogger
 }
 
@@ -23,12 +27,17 @@ type IKubernetesClient interface {
 	GetNodes(labelSelector string) (*v1.NodeList, error)
 	GetNode(name string) (v1.Node, error)
 	GetPodsInNode(name string) ([]v1.Pod, error)
-	DeletePod(name, namespace string) error
 	DeleteNode(name string) error
 	UpdateNode(node v1.Node) error
+	DrainNode(name string, useEvict bool, timeout time.Duration, gracePeriodSeconds int) error
 }
 
-func NewClient(cp config.IProvider, zl logger.IZapLogger) KubernetesClient {
+var (
+	// ErrDrainNodeTimeout indicates client is not able to drain the node before reaching timeout
+	ErrDrainNodeTimeout = errors.New("drain node timeout")
+)
+
+func NewClient(ctx context.Context, cp config.IProvider, zl logger.IZapLogger) KubernetesClient {
 
 	var kubeConfig *rest.Config
 
@@ -47,7 +56,7 @@ func NewClient(cp config.IProvider, zl logger.IZapLogger) KubernetesClient {
 		panic(err.Error())
 	}
 
-	return KubernetesClient{logger: zl, Clientset: clientset}
+	return KubernetesClient{logger: zl, Clientset: clientset, ctx: ctx}
 }
 
 func homeDir() string {

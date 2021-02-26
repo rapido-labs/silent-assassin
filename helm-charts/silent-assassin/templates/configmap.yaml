@@ -14,6 +14,8 @@ data:
       POLL_INTERVAL: {{ .Values.silent_assassin.killer.poll_interval }}
       DRAINING_TIMEOUT_WHEN_NODE_EXPIRED: {{ .Values.silent_assassin.killer.draining_timeout_when_node_expired }}
       DRAINING_TIMEOUT_WHEN_NODE_PREEMPTED: {{ .Values.silent_assassin.killer.draining_timeout_when_node_preempted }}
+      EVICT_DELETE_DEADLINE: {{ .Values.silent_assassin.killer.evict_delete_deadline }}
+      GRACE_PERIOD_SECONDS_WHEN_POD_DELETED: {{ .Values.silent_assassin.killer.grace_period_seconds_when_pod_deleted }}
 
     SHIFTER:
       ENABLED: {{ .Values.silent_assassin.shifter.enabled }}

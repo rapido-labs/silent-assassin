@@ -23,9 +23,11 @@ var (
 )
 
 type IKiller interface {
-	EvacuatePodsFromNode(name string, timeout time.Duration, preemption bool) error
 	Start(ctx context.Context, wg *sync.WaitGroup)
+	DeletePodsFromNode(name string, timeout time.Duration, gracePeriodSeconds int) error
+	EvictPodsFromNode(name string, timeout time.Duration, evictDeleteDeadline time.Duration, gracePeriodSeconds int) error
 }
+
 type KillerService struct {
 	cp           config.IProvider
 	logger       logger.IZapLogger
@@ -63,8 +65,8 @@ func (ks KillerService) Start(ctx context.Context, wg *sync.WaitGroup) {
 func (ks KillerService) kill() {
 
 	nodesToDelete, err := ks.findExpiredTimeNodes(ks.cp.GetString(config.NodeSelectors))
-
 	if err != nil {
+		ks.logger.Error(fmt.Sprintf("Failed to find nodes to delete: %s", err))
 		return
 	}
 
@@ -73,7 +75,12 @@ func (ks KillerService) kill() {
 		ks.logger.Info(fmt.Sprintf("Processing node %s", node.Name))
 
 		nodesKilled.Inc()
-		if err := ks.EvacuatePodsFromNode(node.Name, ks.cp.GetDuration(config.KillerDrainingTimeoutWhenNodeExpired), false); err != nil {
+		if err := ks.EvictPodsFromNode(
+			node.Name,
+			ks.cp.GetDuration(config.KillerDrainingTimeoutWhenNodeExpired),
+			ks.cp.GetDuration(config.KillerEvictDeleteDeadline),
+			ks.cp.GetInt(config.KillerGracePeriodSecondsWhenPodDeleted),
+		); err != nil {
 			ks.logger.Error(fmt.Sprintf("Error evacuating node:%s, %s", node.Name, err.Error()))
 			continue
 		}

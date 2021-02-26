@@ -17,6 +17,8 @@ const SpotterWhiteListIntervalHours = "spotter.white_list_interval_hours"
 const KillerPollInterval = "killer.poll_interval"
 const KillerDrainingTimeoutWhenNodeExpired = "killer.draining_timeout_when_node_expired"
 const KillerDrainingTimeoutWhenNodePreempted = "killer.draining_timeout_when_node_preempted"
+const KillerEvictDeleteDeadline = "killer.evict_delete_deadline"
+const KillerGracePeriodSecondsWhenPodDeleted = "killer.grace_period_seconds_when_pod_deleted"
 
 const ShifterEnabled = "shifter.enabled"
 const ShifterPollInterval = "shifter.poll_interval"
