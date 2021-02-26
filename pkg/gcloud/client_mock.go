@@ -2,6 +2,7 @@ package gcloud
 
 import (
 	"context"
+	"time"
 
 	"github.com/stretchr/testify/mock"
 	compute "google.golang.org/api/compute/v1"
@@ -37,7 +38,7 @@ func (m *GCloudClientMock) waitForOperation(ctx context.Context, operationID str
 	return args.Error(0)
 }
 
-func (m *GCloudClientMock) SetNodePoolSize(npName string, size int64, timeout int) error {
+func (m *GCloudClientMock) SetNodePoolSize(npName string, size int64, timeout time.Duration) error {
 	args := m.Called(npName, size, timeout)
 	return args.Error(0)
 }

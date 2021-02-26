@@ -12,7 +12,7 @@ func (kc KubernetesClient) GetPodsInNode(name string) ([]v1.Pod, error) {
 	options := metav1.ListOptions{
 		FieldSelector: fmt.Sprintf("spec.nodeName=%s", name),
 	}
-	podList, err := kc.CoreV1().Pods("").List(options)
+	podList, err := kc.CoreV1().Pods("").List(kc.ctx, options)
 	if err != nil {
 		return pods, err
 	}
@@ -20,10 +20,4 @@ func (kc KubernetesClient) GetPodsInNode(name string) ([]v1.Pod, error) {
 
 	return pods, err
 
-}
-
-func (kc KubernetesClient) DeletePod(name, namespace string) error {
-	options := &metav1.DeleteOptions{}
-	err := kc.Clientset.CoreV1().Pods(namespace).Delete(name, options)
-	return err
 }

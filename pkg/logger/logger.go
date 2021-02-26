@@ -74,3 +74,14 @@ func getLogLevel(level string) zap.AtomicLevel {
 		return zap.NewAtomicLevelAt(zap.InfoLevel)
 	}
 }
+
+// LogWriter is an adapter from a logging function to an io.Writer object
+type LogWriter struct {
+	LogFunc func(string)
+}
+
+// Write is part of io.Writer interface
+func (lw LogWriter) Write(p []byte) (n int, err error) {
+	lw.LogFunc(string(p))
+	return len(p), nil
+}

@@ -46,7 +46,8 @@ func NewShifterService(cp config.IProvider, zl logger.IZapLogger, kc k8s.IKubern
 }
 
 func (ss ShifterService) Start(ctx context.Context, wg *sync.WaitGroup) {
-	ss.logger.Info(fmt.Sprintf("Starting Shifter Loop - Poll Interval: %d", ss.cp.GetInt(config.ShifterPollIntervalMs)))
+	pollInterval := ss.cp.GetDuration(config.ShifterPollInterval)
+	ss.logger.Info(fmt.Sprintf("Starting Shifter Loop - Poll Interval: %s", pollInterval))
 	ss.initWhitelist()
 
 	for {
@@ -70,8 +71,8 @@ func (ss ShifterService) Start(ctx context.Context, wg *sync.WaitGroup) {
 			for _, interval := range ss.whiteListIntervals {
 				if timeWithinWLIntervalCheck(interval.start, interval.end, now) {
 					ss.shift()
-					ss.logger.Info(fmt.Sprintf("Shifter sleeping for %v ms", ss.cp.GetInt(config.ShifterPollIntervalMs)))
-					time.Sleep(time.Millisecond * time.Duration(ss.cp.GetInt(config.ShifterPollIntervalMs)))
+					ss.logger.Info(fmt.Sprintf("Shifter sleeping for %s", pollInterval))
+					time.Sleep(pollInterval)
 				}
 			}
 		}
@@ -227,7 +228,7 @@ func (ss ShifterService) shift() {
 					// Resize the preemptible nodepool to sum of curent size of preemptible node-pool and one
 					ss.logger.Info(fmt.Sprintf("Resizing the preemptible nodepool: %v node-size: %d -> %d", npInfo.preemptibleNP, preemptibleNPSize, preemptibleNPSize+1))
 					ss.notifier.Info(config.EventResizeNodePool, fmt.Sprintf("Resizing the preemptible nodepool: %v node-size: %d -> %d", npInfo.preemptibleNP, preemptibleNPSize, preemptibleNPSize+1))
-					err = ss.gcloudClient.SetNodePoolSize(npInfo.preemptibleNP, preemptibleNPSize+1, ss.cp.GetInt(config.ShifterNPResizeTimeout))
+					err = ss.gcloudClient.SetNodePoolSize(npInfo.preemptibleNP, preemptibleNPSize+1, ss.cp.GetDuration(config.ShifterNPResizeTimeout))
 					if err != nil {
 						ss.logger.Error(fmt.Sprintf("Resizing the preemptible nodepool: %v node-size: %d -> %d failed: %v", npInfo.preemptibleNP, preemptibleNPSize, preemptibleNPSize+1, err.Error()))
 						ss.notifier.Error(config.EventResizeNodePool, fmt.Sprintf("Resizing the preemptible nodepool: %v node-size: %d -> %d failed: %v", npInfo.preemptibleNP, preemptibleNPSize, preemptibleNPSize+1, err.Error()))
@@ -236,7 +237,12 @@ func (ss ShifterService) shift() {
 					}
 				}
 				ss.logger.Info(fmt.Sprintf("Shifter Draining node %v", node.Name))
-				err := ss.killer.EvacuatePodsFromNode(node.Name, ss.cp.GetUint32(config.KillerDrainingTimeoutWhenNodeExpiredMs), false)
+				err := ss.killer.EvictPodsFromNode(
+					node.Name,
+					ss.cp.GetDuration(config.KillerDrainingTimeoutWhenNodeExpired),
+					ss.cp.GetDuration(config.KillerEvictDeleteDeadline),
+					ss.cp.GetInt(config.KillerGracePeriodSecondsWhenPodDeleted),
+				)
 
 				if err != nil {
 					ss.logger.Error(fmt.Sprintf("Error draining the node %v: %v", node.Name, err.Error()))
@@ -255,8 +261,8 @@ func (ss ShifterService) shift() {
 				nodesDeleted++
 
 				//Sleep after node deletion for the workloads to stabilize
-				ss.logger.Info(fmt.Sprintf("Shifter sleeping for %d ms", ss.cp.GetInt32(config.ShifterSleepAfterNodeDeletionMs)))
-				time.Sleep(time.Millisecond * time.Duration(ss.cp.GetInt32(config.ShifterSleepAfterNodeDeletionMs)))
+				ss.logger.Info(fmt.Sprintf("Shifter sleeping for %s", ss.cp.GetDuration(config.ShifterSleepAfterNodeDeletion)))
+				time.Sleep(ss.cp.GetDuration(config.ShifterSleepAfterNodeDeletion))
 			}
 		}
 	}

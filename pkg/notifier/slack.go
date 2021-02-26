@@ -21,7 +21,7 @@ type Slack struct {
 	username       string
 	channel        string
 	iconURL        string
-	messageTimeout uint32
+	messageTimeout time.Duration
 	httpClient     utils.IHTTPClient
 }
 
@@ -58,7 +58,7 @@ func NewSlackClient(cp config.IProvider) (Slack, error) {
 	username := cp.GetString(config.SlackUsername)
 	channel := cp.GetString(config.SlackChannel)
 	iconURL := cp.GetString(config.SlackIconURL)
-	messageTimeout := cp.GetUint32(config.SlackTimeoutMs)
+	messageTimeout := cp.GetDuration(config.SlackTimeout)
 
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
@@ -73,7 +73,7 @@ func NewSlackClient(cp config.IProvider) (Slack, error) {
 	}
 
 	if messageTimeout == 0 {
-		messageTimeout = 2000
+		messageTimeout = 2 * time.Second
 	}
 
 	httpClient := http.DefaultClient
@@ -137,7 +137,7 @@ func (s Slack) postMessage(address string, payload interface{}) error {
 	}
 	req.Header.Set("Content-type", "application/json")
 
-	ctx, cancel := context.WithTimeout(req.Context(), time.Duration(s.messageTimeout)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(req.Context(), s.messageTimeout)
 	defer cancel()
 
 	res, err := s.httpClient.Do(req.WithContext(ctx))

@@ -1,6 +1,8 @@
 package k8s
 
 import (
+	"time"
+
 	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/api/core/v1"
 )
@@ -29,12 +31,12 @@ func (m *K8sClientMock) DeleteNode(name string) error {
 	return args.Error(0)
 }
 
-func (m *K8sClientMock) DeletePod(name, namespace string) error {
-	args := m.Called(name, namespace)
-	return args.Error(0)
-}
-
 func (m *K8sClientMock) GetPodsInNode(name string) ([]v1.Pod, error) {
 	args := m.Called(name)
 	return args.Get(0).([]v1.Pod), args.Error(1)
+}
+
+func (m *K8sClientMock) DrainNode(name string, useEvict bool, timeout time.Duration, gracePeriodSeconds int) error {
+	args := m.Called(name, useEvict, timeout, gracePeriodSeconds)
+	return args.Error(0)
 }

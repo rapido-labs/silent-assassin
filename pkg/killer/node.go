@@ -1,17 +1,20 @@
 package killer
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/roppenlabs/silent-assassin/pkg/config"
-	v1 "k8s.io/api/core/v1"
+	"github.com/roppenlabs/silent-assassin/pkg/k8s"
 )
 
-//getExpiryTime returns the expiry time set on the node
-//using the annotation silent-assassin/expiry-time
-func getExpiryTime(node v1.Node) string {
+// getExpiryTime returns the expiry time set on the node
+// using the annotation silent-assassin/expiry-time
+func getExpiryTime(node corev1.Node) string {
 
 	if timestamp, ok := node.ObjectMeta.Annotations[config.ExpiryTimeAnnotation]; ok {
 		return timestamp
@@ -20,10 +23,10 @@ func getExpiryTime(node v1.Node) string {
 	return ""
 }
 
-//findExpiredTimeNodes gets the list of nodes whose expiry time set is older than current time
-//These nodes are eligible for deletion.
-func (ks KillerService) findExpiredTimeNodes(labelSelector string) ([]v1.Node, error) {
-	var nodesToBeDeleted []v1.Node
+// findExpiredTimeNodes gets the list of nodes whose expiry time set is older than current time
+// These nodes are eligible for deletion.
+func (ks KillerService) findExpiredTimeNodes(labelSelector string) ([]corev1.Node, error) {
+	var nodesToBeDeleted []corev1.Node
 	nodeList, err := ks.kubeClient.GetNodes(labelSelector)
 	if err != nil {
 		ks.logger.Error(fmt.Sprintf("Error getting nodes %s", err.Error()))
@@ -56,9 +59,9 @@ func (ks KillerService) findExpiredTimeNodes(labelSelector string) ([]v1.Node, e
 	return nodesToBeDeleted, nil
 }
 
-//makeNodeUnschedulable function cordons the node thus disabling scheduling of
-//any new pods on this node during draining.
-func (ks KillerService) makeNodeUnschedulable(node v1.Node) error {
+// makeNodeUnschedulable function cordons the node thus disabling scheduling of
+// any new pods on this node during draining.
+func (ks KillerService) makeNodeUnschedulable(node corev1.Node) error {
 
 	node.Spec.Unschedulable = true
 	err := ks.kubeClient.UpdateNode(node)
@@ -66,60 +69,16 @@ func (ks KillerService) makeNodeUnschedulable(node v1.Node) error {
 
 }
 
-//waitforDrainToFinish function waits for the pods that were deleted by startDrainNode method
-//to get evicted from the node. This takes  timeout as an argument, if the draining of nodes
-//takes more time than the specified timeout, then the function returns timeout error.
-func (ks KillerService) waitforDrainToFinish(nodeName string, timeout uint32) error {
-	start := time.Now()
-	for {
-		podsPending, err := ks.getPodsToBeDeleted(nodeName)
-		if err != nil {
-			ks.logger.Error(fmt.Sprintf("Error fetching pods: %s", err.Error()))
-			return err
-		}
-
-		if len(podsPending) == 0 {
-			return nil
-		}
-		elapsed := uint32(time.Since(start).Milliseconds())
-		if elapsed >= timeout {
-			return fmt.Errorf("Drainout timed out. Drain duration exceeded %d mill seconds", timeout)
-		}
-	}
-}
-
-//startDrainNode will delete the pods running on the node passed
-//in the arugment.
-func (ks KillerService) startNodeDrain(nodeName string) error {
-	filteredPodList, err := ks.getPodsToBeDeleted(nodeName)
-	if err != nil {
-		return err
-	}
-	for _, pod := range filteredPodList {
-		ks.logger.Info(fmt.Sprintf("Deleting pod %s on node %s", pod.Name, nodeName))
-
-		if err := ks.kubeClient.DeletePod(pod.Name, pod.Namespace); err != nil {
-			ks.logger.Error(
-				fmt.Sprintf("Error deleting the pod %s on node %s in %s namespace:%s",
-					pod.Name, nodeName, pod.Namespace, err.Error(),
-				),
-			)
-			return err
-		}
-	}
-	return nil
-}
-
-//getZoneFromNode extracts the GCP projectID and zone
-//from the given node.
-func getZoneFromNode(node v1.Node) string {
+// getZoneFromNode extracts the GCP projectID and zone
+// from the given node.
+func getZoneFromNode(node corev1.Node) string {
 	s := strings.Split(node.Spec.ProviderID, "/")
 	zone := s[3]
 	return zone
 }
 
-func (ks KillerService) deleteNode(node v1.Node) {
-	nodeDetails := getNodeDetails(node, false)
+func (ks KillerService) deleteNode(node corev1.Node) {
+	nodeDetails := getNodeDetails(node)
 
 	// Delete the k8s node
 	ks.logger.Info(fmt.Sprintf("Deleting node %s", node.Name))
@@ -142,50 +101,90 @@ func (ks KillerService) deleteNode(node v1.Node) {
 	ks.notifier.Info(config.EventDeleteInstance, nodeDetails)
 }
 
-func getNodeDetails(node v1.Node, preemption bool) string {
+func getNodeDetails(node corev1.Node) string {
 	return fmt.Sprintf("Node: %s\n"+
-		"Preemption: %t\n"+
 		"Creation Time: %s\n"+
 		"ExpiryTime: %s",
-		node.Name, preemption, node.CreationTimestamp, node.Annotations[config.ExpiryTimeAnnotation])
+		node.Name, node.CreationTimestamp, node.Annotations[config.ExpiryTimeAnnotation])
 }
 
-//handlePreemption handles POST request on EvacuatePodsURI. This deletes the pods on the node requested.
-func (ks KillerService) EvacuatePodsFromNode(name string, timeout uint32, preemption bool) error {
+// DeletePodsFromNode drains pods from a node using delete k8s delete api.
+func (ks KillerService) DeletePodsFromNode(name string, timeout time.Duration, gracePeriodSeconds int) error {
 	start := time.Now()
 
 	node, err := ks.kubeClient.GetNode(name)
 
 	if err != nil {
-		ks.logger.Error(fmt.Sprintf("Error fetching the node %s, %s", name, err.Error()))
+		ks.logger.Error(fmt.Sprintf("Error fetching the node %s, %s", name, err))
 		return err
 	}
-	nodeDetails := getNodeDetails(node, preemption)
+	nodeDetails := getNodeDetails(node)
 
 	if err := ks.makeNodeUnschedulable(node); err != nil {
-		ks.logger.Error(fmt.Sprintf("Failed to cordon the node %s, %s", node.Name, err.Error()))
-		ks.notifier.Error(config.EventCordon, fmt.Sprintf("%s\nError:%s", nodeDetails, err.Error()))
+		ks.logger.Error(fmt.Sprintf("Failed to cordon the node %s, %s", node.Name, err))
+		ks.notifier.Error(config.EventCordon, fmt.Sprintf("%s\nError:%s", nodeDetails, err))
 		return err
 	}
 
-	if err := ks.startNodeDrain(node.Name); err != nil {
-		ks.logger.Error(fmt.Sprintf("Failed to drain the node %s, %s", node.Name, err.Error()))
-		ks.notifier.Error(config.EventDrain, fmt.Sprintf("%s\nError:%s", nodeDetails, err.Error()))
+	if err := ks.kubeClient.DrainNode(node.Name, false, timeout, gracePeriodSeconds); err != nil {
+		ks.logger.Error(fmt.Sprintf("Failed to delete pods from node %s, %s", node.Name, err))
+		ks.notifier.Error(config.EventDrain, fmt.Sprintf("%s\nError:%s", nodeDetails, err))
 		return err
 	}
 
-	if err := ks.waitforDrainToFinish(node.Name, timeout); err != nil {
-		ks.logger.Error(fmt.Sprintf("Error while waiting for drain on node %s, %s", node.Name, err.Error()))
-		ks.notifier.Error(config.EventDrain, fmt.Sprintf("%s\nError:%s", nodeDetails, err.Error()))
+	ks.logger.Info(fmt.Sprintf("Successfully drained node %s in %s", name, time.Now().Sub(start)))
+	return nil
+}
+
+// EvictPodsFromNode drains pods from a node using k8s evict api.
+func (ks KillerService) EvictPodsFromNode(name string, timeout time.Duration, evictDeleteDeadline time.Duration, gracePeriodSeconds int) error {
+	start := time.Now()
+
+	node, err := ks.kubeClient.GetNode(name)
+
+	if err != nil {
+		ks.logger.Error(fmt.Sprintf("Error fetching the node %s, %s", name, err))
 		return err
 	}
-	ks.logger.Info(fmt.Sprintf("Successfully drained the node %s", node.Name))
-	ks.notifier.Info(config.EventDrain, nodeDetails)
+	nodeDetails := getNodeDetails(node)
 
-	end := time.Now()
-	timeTakenToEvacuatePods := end.Sub(start).Seconds()
+	if err := ks.makeNodeUnschedulable(node); err != nil {
+		ks.logger.Error(fmt.Sprintf("Failed to cordon the node %s, %s", node.Name, err))
+		ks.notifier.Error(config.EventCordon, fmt.Sprintf("%s\nError:%s", nodeDetails, err))
+		return err
+	}
 
-	ks.logger.Info(fmt.Sprintf("Took %f seconds to drain the node %s", timeTakenToEvacuatePods, node.Name))
-	ks.logger.Info(fmt.Sprintf("Successfully drained the node %s", node.Name))
+	// evictionGracePeriod is time period that SA is allowed to evict the pods
+	// if evict takes longer than evictionGracePeriod, SA treats remaining pods
+	// as misconfigured and delete them instead.
+	evictionGracePeriod := timeout - evictDeleteDeadline
+	ks.logger.Debug(fmt.Sprintf("Evicting pods from node %s with timeout %s", timeout, evictionGracePeriod))
+
+	// evict pods
+	err = ks.kubeClient.DrainNode(node.Name, true, evictionGracePeriod, gracePeriodSeconds)
+	if err == nil {
+		ks.logger.Info(fmt.Sprintf("Successfully drained node %s in %s", name, time.Now().Sub(start)))
+		return nil
+	}
+
+	// check for unexpected error
+	if !errors.Is(err, k8s.ErrDrainNodeTimeout) {
+		ks.logger.Error(fmt.Sprintf("Failed evicting pods from node %s: %s", node.Name, err))
+		ks.notifier.Error(config.EventCordon, fmt.Sprintf("%s\nFailed evicting pods from node:%s", nodeDetails, err))
+		return err
+	}
+
+	// eviction took too long to complete, fallback to delete the remaining pods
+	ks.logger.Info(fmt.Sprintf("Timeout evicting pods from node %s, fallback to delete", node.Name))
+	ks.notifier.Info(config.EventCordon, fmt.Sprintf("%s\nTimeout evicting pods from node, fallback to delete", nodeDetails))
+
+	err = ks.kubeClient.DrainNode(node.Name, false, evictDeleteDeadline, gracePeriodSeconds)
+	if err != nil {
+		ks.logger.Error(fmt.Sprintf("Failed deleting pods from node %s: %s", node.Name, err))
+		ks.notifier.Error(config.EventCordon, fmt.Sprintf("%s\nFailed deleting pods from node:%s", nodeDetails, err))
+		return err
+	}
+
+	ks.logger.Info(fmt.Sprintf("Successfully drained node %s in %s", name, time.Now().Sub(start)))
 	return nil
 }

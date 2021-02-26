@@ -26,7 +26,7 @@ type IGCloudClient interface {
 	GetInstance(project, zone, name string) (*compute.Instance, error)
 	ListNodePools() ([]*container.NodePool, error)
 	GetNodePool(npName string) (*container.NodePool, error)
-	SetNodePoolSize(npName string, size int64, timeout int) error
+	SetNodePoolSize(npName string, size int64, timeout time.Duration) error
 	GetNumberOfZones() int
 }
 
@@ -141,7 +141,7 @@ func (client GCloudClient) waitForLocationOperation(ctx context.Context, operati
 	}
 }
 
-func (client GCloudClient) SetNodePoolSize(name string, size int64, timeout int) error {
+func (client GCloudClient) SetNodePoolSize(name string, size int64, timeout time.Duration) error {
 
 	npURI := fmt.Sprintf("projects/%s/locations/%s/clusters/%s/nodePools/%s", client.project, client.location, client.cluster, name)
 
@@ -155,7 +155,7 @@ func (client GCloudClient) SetNodePoolSize(name string, size int64, timeout int)
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	err = client.waitForLocationOperation(ctx, op.Name)
