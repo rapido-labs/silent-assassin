@@ -62,7 +62,7 @@ func NewSlackClient(cp config.IProvider) (Slack, error) {
 
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
-		return slack, fmt.Errorf("invalid Slack hook URL %s", hookURL)
+		return slack, fmt.Errorf("invalid Slack hook URL %s: %s", hookURL, err)
 	}
 	if username == "" {
 		return slack, errors.New("empty Slack username")
