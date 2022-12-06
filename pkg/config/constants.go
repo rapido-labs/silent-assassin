@@ -48,3 +48,5 @@ const EventResizeNodePool = "RESIZE_NP"
 const CommaSeparater = ","
 
 const EvacuatePodsURI = "/evacuatepods"
+
+const NodePoolLabel = "prometheus_metrics.nodepool_label"

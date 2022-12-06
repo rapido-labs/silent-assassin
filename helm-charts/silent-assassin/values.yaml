@@ -74,3 +74,5 @@ silent_assassin:
   client:
     server_retries: 4
     watch_maintainance_event: true
+  prometheus_metrics:
+    nodepool_label: cloud.google.com/gke-nodepool

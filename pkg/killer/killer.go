@@ -13,13 +13,14 @@ import (
 	"github.com/roppenlabs/silent-assassin/pkg/k8s"
 	"github.com/roppenlabs/silent-assassin/pkg/logger"
 	"github.com/roppenlabs/silent-assassin/pkg/notifier"
+	v1 "k8s.io/api/core/v1"
 )
 
 var (
-	nodesKilled = promauto.NewCounter(prometheus.CounterOpts{
+	nodesKilled = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "nodes_killed",
 		Help: "The total number of nodes killed when they reach their expiry time",
-	})
+	}, []string{"nodePool"})
 )
 
 type IKiller interface {
@@ -72,7 +73,9 @@ func (ks KillerService) kill() {
 	for _, node := range nodesToDelete {
 		ks.logger.Info(fmt.Sprintf("Processing node %s", node.Name))
 
-		nodesKilled.Inc()
+		nodePool := node.Labels[ks.cp.GetString(config.NodePoolLabel)]
+		nodesKilled.WithLabelValues(nodePool).Inc()
+
 		if err := ks.EvacuatePodsFromNode(node.Name, ks.cp.GetUint32(config.KillerDrainingTimeoutWhenNodeExpiredMs), false); err != nil {
 			ks.logger.Error(fmt.Sprintf("Error evacuating node:%s, %s", node.Name, err.Error()))
 			continue
@@ -81,4 +84,8 @@ func (ks KillerService) kill() {
 		ks.deleteNode(node)
 
 	}
+}
+
+func (ks KillerService) GetNode(name string) (v1.Node, error) {
+	return ks.kubeClient.GetNode(name)
 }
