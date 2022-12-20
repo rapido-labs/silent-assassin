@@ -19,7 +19,7 @@ var clientCmd = &cobra.Command{
 
 	Long: ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		sigChan := make(chan os.Signal)
+		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		wg := &sync.WaitGroup{}
 		ctx, cancelFn := context.WithCancel(context.Background())

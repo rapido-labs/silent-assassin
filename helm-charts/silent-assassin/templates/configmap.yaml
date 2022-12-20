@@ -37,6 +37,9 @@ data:
     CLIENT:
       SERVER_RETRIES: {{ .Values.silent_assassin.client.server_retries }}
       WATCH_MAINTAINANCE_EVENTS: {{ .Values.silent_assassin.client.watch_maintainance_event }}
+    
+    PROMETHEUS_METRICS:
+      NODEPOOL_LABEL: {{ .Values.silent_assassin.prometheus_metrics.nodepool_label }}
 kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-config

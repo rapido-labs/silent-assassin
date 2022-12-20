@@ -16,10 +16,10 @@ import (
 )
 
 var (
-	nodesPreempted = promauto.NewCounter(prometheus.CounterOpts{
+	nodesPreempted = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "nodes_preempted",
 		Help: "The total number of preemptions",
-	})
+	}, []string{"nodePool"})
 )
 
 type Server struct {
