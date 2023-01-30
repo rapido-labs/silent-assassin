@@ -70,6 +70,7 @@ func (ks KillerService) kill() {
 	}
 
 	ks.logger.Debug(fmt.Sprintf("Number of nodes to kill %d", len(nodesToDelete)))
+	startTime := time.Now()
 	for _, node := range nodesToDelete {
 		ks.logger.Info(fmt.Sprintf("Processing node %s", node.Name))
 
@@ -84,6 +85,8 @@ func (ks KillerService) kill() {
 		ks.deleteNode(node)
 
 	}
+	timeDuration := time.Now().Sub(startTime).Seconds()
+	ks.logger.Info(fmt.Sprintf("Kill time duration in seconds : %f", timeDuration))
 }
 
 func (ks KillerService) GetNode(name string) (v1.Node, error) {
