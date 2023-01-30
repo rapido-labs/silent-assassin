@@ -12,7 +12,7 @@ type NodeTerminationRequest struct {
 	Name string
 }
 
-//handlePreemption handles POST request on EvacuatePodsURI. This deletes the pods on the node requested.
+// handlePreemption handles POST request on EvacuatePodsURI. This deletes the pods on the node requested.
 func (s Server) handleTermination(w http.ResponseWriter, r *http.Request) {
 	var nodeTerminationRequest NodeTerminationRequest
 	if err := json.NewDecoder(r.Body).Decode(&nodeTerminationRequest); err != nil {
@@ -36,6 +36,7 @@ func (s Server) handleTermination(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.logger.Error(fmt.Sprintf("Error evacuating pods from node %s", node.Name))
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
