@@ -25,6 +25,20 @@ func (ks KillerService) getPodsToBeDeleted(name string) ([]v1.Pod, error) {
 		return podList, err
 	}
 	// Filter out DaemonSet from the list of pods
-	filteredPodList := filterOutPodByOwnerReferenceKind(podList, "DaemonSet")
-	return filteredPodList, err
+	filteredPodsByDaemonSet := filterOutPodByOwnerReferenceKind(podList, "DaemonSet")
+
+	podsToDelete := filterMirrorPods(filteredPodsByDaemonSet)	
+	return podsToDelete, err
+}
+
+func filterMirrorPods(pods []v1.Pod) (filteredPods []v1.Pod) {
+
+	for _, pod := range pods {
+		if _, found := pod.ObjectMeta.Annotations[v1.MirrorPodAnnotationKey]; !found {
+			filteredPods = append(filteredPods, pod)
+		}
+	}
+
+	return filteredPods
+
 }

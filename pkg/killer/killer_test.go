@@ -75,6 +75,27 @@ func (k *KillerTestSuite) TestShouldFilterPodsByReferenceKind() {
 	assert.NotContains(k.T(), filteredPodList, podOwnedByDS)
 }
 
+func (k *KillerTestSuite) TestShouldFilterPodsByIgnoringMirrorPods() {
+
+	podOwnedByRS := v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			OwnerReferences: []metav1.OwnerReference{
+				{Kind: "ReplicaSet"}}}}
+
+	mirrorPod := v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{v1.MirrorPodAnnotationKey: "abcde"}}}
+
+	podList := []v1.Pod{podOwnedByRS, mirrorPod}
+	filteredPodList := filterMirrorPods(podList)
+	
+	assert.Contains(k.T(), filteredPodList, podOwnedByRS)
+	assert.NotContains(k.T(), filteredPodList, mirrorPod)
+	assert.Equal(k.T(), 1, len(filteredPodList))
+	assert.Equal(k.T(), "ReplicaSet", filteredPodList[0].ObjectMeta.OwnerReferences[0].Kind)
+
+}
+
 func TestKillerTestSuite(t *testing.T) {
 	suite.Run(t, new(KillerTestSuite))
 }
