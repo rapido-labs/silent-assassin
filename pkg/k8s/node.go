@@ -17,7 +17,7 @@ func (kc KubernetesClient) GetNodes(labelSelector string) (*v1.NodeList, error) 
 	nodes, err := kc.CoreV1().Nodes().List(options)
 
 	if err != nil {
-		kc.logger.Info("Failed to get nodes")
+		kc.logger.Info(fmt.Sprintf("Failed to get nodes: %s", err))
 		return nodes, err
 	}
 
